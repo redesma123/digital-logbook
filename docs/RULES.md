@@ -76,9 +76,11 @@ Tabel:
 **Operator dapat mengubah status gangguan ke PROCESS saja.
 
 ## 3. Rumus Analytics
-
-### 3.1 Availability
-`Availability (%) = (Running Hours / Jam Periode) × 100`
+ 
+### 3.1 Availability & Running Hours
+- `Running Hours (Shift) = hour_meter_end - hour_meter_start` (maksimal 8.0 jam per shift).
+- `Availability (%) = (Σ Running Hours dalam Periode / Jam Periode) × 100`.
+- *Catatan Pergantian Shift:* Setiap operator memiliki akun unik. Saat membuka form input, nilai `hour_meter_start` ditarik otomatis dari `hour_meter_end` entri shift terakhir pada unit tersebut.
 
 ### 3.2 Capacity Factor
 `Capacity Factor (%) = (Energi Aktual / (Kapasitas Terpasang × Jam Periode)) × 100`

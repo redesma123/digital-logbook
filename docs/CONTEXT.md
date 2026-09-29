@@ -6,19 +6,10 @@ HYDRO-MON (Hydro Power Digital Monitoring & Performance System) adalah sistem Di
 ## 2. Latar Belakang
 Proses pencatatan operasional PLTMH Sampean Baru di masa lalu berjalan sepenuhnya mengandalkan metode manual berbasis kertas dan *spreadsheet*. Pendekatan konvensional tersebut menghasilkan inkonsistensi pendistribusian data, keterlambatan prosedur rekapitulasi, kerumitan audit pencatatan historis, dan ketiadaan instrumen pantau waktu nyata bagi manajemen. Sistem HYDRO-MON diinisiasi secara terpusat untuk mendigitalisasi dan mensistematiskan seluruh siklus operasional tersebut pada sebuah kerangka aplikasi yang terpadu.
 
-## 3. Kontrak & Tim
-- SPK No. SPK/ENG/2026/IX/18
-- Pemberi kerja: Yogi Reza Ramadhan, ST — Direktur CV. REDESMA
-- PIC pengembangan: Laila Mutiara
-- Pendukung: Aditya Bayu
-- Periode: 25 September — 9 Oktober 2026
-- Nilai: 50 poin
-- Output: website dashboard, aplikasi Android, SOP, training
-
-## 4. Status Proyek
+## 3. Status Proyek
 Tahap spesifikasi. Implementasi kode belum dimulai.
 
-## 5. Arsitektur Repositori
+## 4. Arsitektur Repositori
 Monorepo dengan tiga bagian:
 - `backend/` — API server (Node.js + Express + Prisma)
 - `web/` — Dashboard supervisor/manajemen (React + Vite)
@@ -26,7 +17,7 @@ Monorepo dengan tiga bagian:
 - `api-spec/` — Kontrak OpenAPI 3
 - `docs/` — Dokumentasi teknis
 
-## 6. Stack Teknologi
+## 5. Stack Teknologi
 | Layer | Teknologi |
 |---|---|
 | Frontend web | React + TypeScript + Vite + Tailwind CSS + TanStack Query + Recharts |
@@ -40,7 +31,7 @@ Monorepo dengan tiga bagian:
 | Deployment | Docker Compose + Caddy (reverse proxy + TLS) |
 | Export | exceljs (XLSX) + CSV |
 
-## 7. Keputusan Desain Utama
+## 6. Keputusan Desain Utama
 | Keputusan | Pilihan |
 |---|---|
 | Scope mobile | 12 layar untuk operator (input + histori + dashboard ringkas) |
@@ -52,5 +43,5 @@ Monorepo dengan tiga bagian:
 | Soft delete | Logbook, gangguan, maintenance menggunakan soft delete |
 | Backup | pg_dump harian + foto ke object storage eksternal |
 
-## 8. Relasi dengan Sistem Lain
+## 7. Relasi dengan Sistem Lain
 HYDRO-MON berdiri mandiri. Tidak ada integrasi sensor atau SCADA. Seluruh data diinput manual oleh operator.

@@ -45,7 +45,7 @@ HYDRO-MON merupakan platform *Digital PLTMH Logbook & Performance Dashboard* unt
 | **F-08** | Entri *logbook* memuat parameter *Electrical* (*voltage*, *current*, *frequency*, *active power*, *reactive power*, *power factor*, *energy production*, *generator status*). |
 | **F-09** | Entri *logbook* memuat parameter *Mechanical* (*RPM*, *bearing temperature*, *generator temperature*, *turbine temperature*, *vibration*). |
 | **F-10** | Entri *logbook* memuat parameter *Hydraulic* (*debit air*, *water level*, *head*, *pressure*, *intake condition*). |
-| **F-11** | Entri *logbook* memuat parameter *Operational* (*running hours*, *start/stop*, *trip*, *shutdown*, catatan). |
+| **F-11** | Entri *logbook* memuat parameter *Operational*: stand meter jam jalan (`hour_meter_start`, `hour_meter_end`), durasi jam operasi terhitung (`running_hours`), status unit (`RUNNING`, `STANDBY`, `TRIP`, `OFFLINE`), dan catatan. Nilai `hour_meter_start` otomatis terisi dari `hour_meter_end` entri shift sebelumnya pada unit yang bersangkutan. |
 | **F-12** | Backend memvalidasi rentang nilai parameter. Nilai di luar rentang wajar ditolak atau diberi peringatan sistem. |
 | **F-13** | Operator dapat melihat histori *logbook* dengan filter tanggal, shift, dan unit. |
 | **F-14** | Operator dan Supervisor dapat melihat detail keseluruhan dari satu entri *logbook*. |

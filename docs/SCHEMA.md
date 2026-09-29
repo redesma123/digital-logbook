@@ -159,11 +159,14 @@ model logbook_entries {
   operator_id Int
   date        DateTime   @db.Date
   shift       Shift
-  unit_status UnitStatus
-  notes       String?
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  deleted_at  DateTime?
+  unit_status       UnitStatus
+  hour_meter_start  Float?
+  hour_meter_end    Float?
+  running_hours     Float?
+  notes             String?
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+  deleted_at        DateTime?
 
   // Relations
   unit              units              @relation(fields: [unit_id], references: [id])
@@ -367,6 +370,9 @@ Entri logbook harian berdasarkan shift. Terdapat aturan definitif satu entri per
 | date | DateTime | Tanggal operasi | Hanya Tanggal (Date) |
 | shift | Shift | Shift (PAGI, SIANG, MALAM) | Enum |
 | unit_status | UnitStatus | Status unit saat pencatatan | Enum |
+| hour_meter_start | Float | Stand hour meter awal shift (dari shift sebelumnya) | Nullable |
+| hour_meter_end | Float | Stand hour meter akhir shift yang dibaca operator dari panel | Nullable |
+| running_hours | Float | Durasi jalan mesin dalam shift (hour_meter_end - hour_meter_start) | Nullable |
 | notes | String | Catatan tambahan | Nullable |
 | deleted_at | DateTime | Waktu penghapusan soft-delete | Nullable |
 | created_at, updated_at | DateTime | Timestamp standar | - |
@@ -463,6 +469,9 @@ Sistem memvalidasi nilai parameter logbook sesuai rentang berikut:
 | water_level_m | m | 0 s.d. nilai desain unit |
 | head_m | m | 0 s.d. nilai desain unit |
 | pressure_bar | bar | 0 s.d. nilai desain unit |
+| hour_meter_start | jam | ≥ 0 |
+| hour_meter_end | jam | ≥ hour_meter_start |
+| running_hours | jam | 0.0 s.d. 8.0 jam (per shift) |
 
 ## 5. Daftar Index
 

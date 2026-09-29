@@ -133,6 +133,9 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
     "date": "2026-09-28",
     "shift": "PAGI",
     "unit_status": "RUNNING",
+    "hour_meter_start": 14242.5,
+    "hour_meter_end": 14250.5,
+    "running_hours": 8.0,
     "notes": "Operasi normal",
     "electrical": {
       "voltage_v": 400,
@@ -160,7 +163,26 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
     }
   }
   ```
+- **Keterangan:** Jika `running_hours` tidak disertakan di body, backend otomatis menghitung dari `hour_meter_end - hour_meter_start`.
 - **Response:** 201 Created. Unique constraint: 1 entri per unit per tanggal per shift (Error 409 jika duplikat).
+
+### GET `/logbook/latest-counter`
+- **Hak Akses:** Semua peran terautentikasi (terutama dipanggil oleh Mobile App saat membuka form input).
+- **Query Params:** `unit_id` (wajib).
+- **Fungsi:** Mengambil nilai stand meter akhir (`hour_meter_end`) dan status terakhir dari entri shift sebelumnya pada unit tersebut sebagai nilai awal (`hour_meter_start`).
+- **Response (200 OK):**
+  ```json
+  {
+    "data": {
+      "unit_id": 1,
+      "last_date": "2026-09-28",
+      "last_shift": "MALAM",
+      "hour_meter_end": 14242.5,
+      "last_operator": "Budi",
+      "unit_status": "RUNNING"
+    }
+  }
+  ```
 
 ### GET `/logbook`
 - **Hak Akses:** Semua peran.
