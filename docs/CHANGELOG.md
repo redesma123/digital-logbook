@@ -14,6 +14,7 @@ Versi mengikuti [Semantic Versioning](https://semver.org/).
 - Dokumentasi ini menjadi acuan definitif (Single Source of Truth) untuk implementasi sistem, menetapkan arsitektur monorepo, spesifikasi API, aturan bisnis, dan komponen UI.
 - Semua ambiguitas diselesaikan dengan spesifikasi yang tegas (tidak ada asumsi atau open question yang menggantung).
 - Menambahkan `hour_meter_start`, `hour_meter_end`, dan `running_hours` pada skema database `logbook_entries`, spesifikasi API endpoint `/logbook`, serta penambahan endpoint `GET /logbook/latest-counter` untuk mendukung alur operan shift antar operator.
+- Menstandarisasi seluruh format response API dengan envelope JSON terpadu yang selalu menyertakan `statusCode`, `success`, `message`, dan `data` (atau `error` + `details`).
 
 ### Status Implementasi
 - Tahap spesifikasi dokumentasi selesai. Implementasi kode belum dimulai.

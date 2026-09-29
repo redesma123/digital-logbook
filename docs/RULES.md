@@ -99,7 +99,7 @@ Catatan: Kapasitas terpasang dan debit desain diambil dari tabel plants/units ya
 ## 4. Konvensi Kode
 
 ### 4.1 Backend
-- Setiap route mengembalikan JSON.
+- Setiap route mengembalikan response JSON dengan envelope standar: `{ statusCode, success, message, data }` untuk sukses (2xx) atau `{ statusCode, success, error, message, details }` untuk gagal (4xx/5xx).
 - Validasi input dengan Zod di middleware.
 - Akses database melalui Prisma ORM.
 - Setiap endpoint yang membutuhkan autentikasi menggunakan middleware JWT.

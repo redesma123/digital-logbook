@@ -192,7 +192,7 @@ Detail spesifik data dirancang dalam dokumen `SCHEMA.md`. Ringkasan entitas utam
 ## 5. Antarmuka Eksternal
 
 * **Antarmuka pengguna (UI):** Aplikasi seluler berbasis Flutter untuk Operator; Antarmuka web berbasis React+TS+Vite untuk Supervisor, Manajemen, dan Admin. Input *logbook* di web dilakukan pada Fase 2.
-* **Antarmuka API:** *Backend* mengekspos REST API seragam berdasarkan OpenAPI 3 (`API.md`).
+* **Antarmuka API:** *Backend* mengekspos REST API seragam berdasarkan OpenAPI 3 (`API.md`) dengan format *envelope* JSON terstandarisasi yang selalu menyertakan `statusCode`, `success`, dan `message`.
 * **Antarmuka database:** PostgreSQL diabstraksi melalui Prisma ORM.
 * **Antarmuka storage:** Abstraksi penyimpanan foto di *disk* dengan *backup* berkala ke *object storage* eksternal.
 

@@ -13,9 +13,35 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
 
 ## 1. Konvensi
 - Endpoint diawali `/api/v1/`.
-- Response sukses memiliki field `data`.
-- Response error memiliki field `error` (string) dan opsional `details` (array).
-- Pagination menggunakan query parameter `page` dan `limit`. Metadata: `pagination: { total, page, limit, totalPages }`.
+- Seluruh response HTTP (baik sukses maupun error) mengembalikan format JSON terstandarisasi (*envelope*):
+  - **`statusCode`** (integer): Kode status HTTP yang sama dengan HTTP response header (misal: 200, 201, 400, 401, 404, 500).
+  - **`success`** (boolean): `true` untuk response sukses (2xx), `false` untuk response gagal (4xx/5xx).
+  - **`message`** (string): Pesan status atau deskripsi hasil operasi dalam Bahasa Indonesia.
+  - **`data`** (object/array, opsional): Payload data yang dikembalikan pada response sukses.
+  - **`error`** (string, opsional): Kategori atau nama error pada response gagal.
+  - **`details`** (array, opsional): Rincian error validasi (misal: validasi Zod).
+- Standar format response sukses:
+  ```json
+  {
+    "statusCode": 200,
+    "success": true,
+    "message": "Operasi berhasil",
+    "data": { ... }
+  }
+  ```
+- Standar format response error:
+  ```json
+  {
+    "statusCode": 400,
+    "success": false,
+    "error": "Bad Request",
+    "message": "Validasi input gagal",
+    "details": [
+      { "field": "voltage_v", "message": "Nilai harus antara 0 dan 500" }
+    ]
+  }
+  ```
+- Pagination menggunakan query parameter `page` dan `limit`. Metadata pagination disertakan dalam `pagination: { total, page, limit, totalPages }`.
 - Filter tanggal menggunakan `from` dan `to` (format ISO 8601: YYYY-MM-DD).
 - Timestamp dalam UTC ISO 8601 (contoh: `2026-09-28T08:00:00Z`).
 
@@ -46,6 +72,9 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
 - **Response (200 OK):**
   ```json
   {
+    "statusCode": 200,
+    "success": true,
+    "message": "Login berhasil",
     "data": {
       "accessToken": "eyJhbGci...",
       "refreshToken": "def456...", 
@@ -58,18 +87,41 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
 - **Hak Akses:** Publik
 - **Fungsi:** Memperbarui access token.
 - **Request Body:** `{ "refreshToken": "def456..." }`
-- **Response (200 OK):** `{ "data": { "accessToken": "eyJhbGci..." } }`
+- **Response (200 OK):**
+  ```json
+  {
+    "statusCode": 200,
+    "success": true,
+    "message": "Token berhasil diperbarui",
+    "data": { "accessToken": "eyJhbGci..." }
+  }
+  ```
 
 ### POST `/auth/logout`
 - **Hak Akses:** Autentikasi diperlukan
 - **Fungsi:** Menghapus sesi pengguna.
 - **Request Body:** `{ "refreshToken": "def456..." }`
-- **Response:** 204 No Content
+- **Response (200 OK):**
+  ```json
+  {
+    "statusCode": 200,
+    "success": true,
+    "message": "Logout berhasil"
+  }
+  ```
 
 ### GET `/auth/me`
 - **Hak Akses:** Autentikasi diperlukan
 - **Fungsi:** Mendapatkan profil pengguna login.
-- **Response (200 OK):** `{ "data": { "id": 1, "username": "operator1", "fullName": "Budi", "role": "OPERATOR" } }`
+- **Response (200 OK):**
+  ```json
+  {
+    "statusCode": 200,
+    "success": true,
+    "message": "Data profil berhasil diambil",
+    "data": { "id": 1, "username": "operator1", "fullName": "Budi", "role": "OPERATOR" }
+  }
+  ```
 
 ---
 
@@ -164,7 +216,34 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
   }
   ```
 - **Keterangan:** Jika `running_hours` tidak disertakan di body, backend otomatis menghitung dari `hour_meter_end - hour_meter_start`.
-- **Response:** 201 Created. Unique constraint: 1 entri per unit per tanggal per shift (Error 409 jika duplikat).
+- **Response (201 Created):**
+  ```json
+  {
+    "statusCode": 201,
+    "success": true,
+    "message": "Entri logbook berhasil disimpan",
+    "data": {
+      "id": 101,
+      "unit_id": 1,
+      "date": "2026-09-28",
+      "shift": "PAGI",
+      "unit_status": "RUNNING",
+      "hour_meter_start": 14242.5,
+      "hour_meter_end": 14250.5,
+      "running_hours": 8.0,
+      "operator_id": 1
+    }
+  }
+  ```
+- **Error (409 Conflict):**
+  ```json
+  {
+    "statusCode": 409,
+    "success": false,
+    "error": "Conflict",
+    "message": "Entri logbook untuk unit, tanggal, dan shift ini sudah ada"
+  }
+  ```
 
 ### GET `/logbook/latest-counter`
 - **Hak Akses:** Semua peran terautentikasi (terutama dipanggil oleh Mobile App saat membuka form input).
@@ -173,6 +252,9 @@ Dokumen ini berisi spesifikasi API untuk sistem HYDRO-MON (Hydro Power Digital M
 - **Response (200 OK):**
   ```json
   {
+    "statusCode": 200,
+    "success": true,
+    "message": "Data stand meter terakhir berhasil diambil",
     "data": {
       "unit_id": 1,
       "last_date": "2026-09-28",
@@ -251,14 +333,35 @@ Foto memiliki batas ukuran maksimal 5 MB per file setelah kompresi dan hanya men
 - **Hak Akses:** OPERATOR, SUPERVISOR
 - **Format Request:** `multipart/form-data`
 - **Fields:** `file`, `related_to` (`LOGBOOK` | `INCIDENT` | `MAINTENANCE`), `related_id`.
-- **Response (201):** `{ "data": { "id": 1, "filename_stored": "...", "mime_type": "image/jpeg", "file_size_bytes": 102400 } }`
+- **Response (201 Created):**
+  ```json
+  {
+    "statusCode": 201,
+    "success": true,
+    "message": "File foto berhasil diunggah",
+    "data": {
+      "id": 1,
+      "filename_stored": "d4e1...-foto.jpg",
+      "mime_type": "image/jpeg",
+      "file_size_bytes": 102400
+    }
+  }
+  ```
 
 ### GET `/attachments/:id`
 - **Hak Akses:** Autentikasi diperlukan. Mengembalikan metadata.
 
 ### GET `/attachments/:id/file`
 - **Hak Akses:** Autentikasi diperlukan (bukan URL publik). Streaming data biner langsung.
-- **Error (410 Gone):** Jika foto dihapus oleh kebijakan retensi 3 bulan.
+- **Error (410 Gone):**
+  ```json
+  {
+    "statusCode": 410,
+    "success": false,
+    "error": "Gone",
+    "message": "Foto telah dihapus sesuai kebijakan retensi 3 bulan"
+  }
+  ```
 
 ### DELETE `/attachments/:id`
 - **Hak Akses:** SUPERVISOR. Hapus file dan metadata.
@@ -270,12 +373,15 @@ Foto memiliki batas ukuran maksimal 5 MB per file setelah kompresi dan hanya men
 ### GET `/dashboard/summary`
 - **Hak Akses:** SUPERVISOR, MANAGEMENT, ADMIN
 - **Query Params:** `unit_id`
-- **Response Sukses:**
+- **Response (200 OK):**
   ```json
   {
+    "statusCode": 200,
+    "success": true,
+    "message": "Data ringkasan dashboard berhasil diambil",
     "data": {
       "unit": { "id": 1, "name": "Unit 1", "current_status": "RUNNING" },
-      "latest_entry": { "date": "2026-09-28", "shift": "PAGI", "electrical": {...}, "hydraulic": {...} },
+      "latest_entry": { "date": "2026-09-28", "shift": "PAGI", "electrical": {}, "hydraulic": {} },
       "today_energy_kwh": 10500,
       "active_incidents_count": 1,
       "active_maintenance_count": 0
@@ -301,9 +407,12 @@ Foto memiliki batas ukuran maksimal 5 MB per file setelah kompresi dan hanya men
   - **Energy Production:** Σ energy_production_kwh seluruh shift dalam periode
   - **Water Utilization (%):** (Rata-rata Debit Aktual / Debit Desain) × 100
   - **Performance Trend:** Perbandingan KPI bulan berjalan vs bulan sebelumnya
-- **Response Sukses:**
+- **Response (200 OK):**
   ```json
   {
+    "statusCode": 200,
+    "success": true,
+    "message": "Data analitik performa berhasil dihitung",
     "data": {
       "period": { "from": "2026-09-01", "to": "2026-09-30" },
       "availability_pct": 98.5,
