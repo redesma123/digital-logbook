@@ -8,6 +8,7 @@ build/
 
 # SDD workspace
 .superpowers/
+docs/superpowers/
 
 # OS / Editor
 .DS_Store
