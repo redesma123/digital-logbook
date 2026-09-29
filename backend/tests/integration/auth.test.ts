@@ -7,6 +7,14 @@ describe('Auth Endpoints Integration', () => {
   let accessToken = '';
   let refreshToken = '';
 
+  beforeAll(async () => {
+    await prisma.refresh_tokens.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await prisma.refresh_tokens.deleteMany({});
+  });
+
   it('POST /api/v1/auth/login with valid credentials should return 200 and tokens', async () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
