@@ -1,0 +1,22 @@
+# Monorepo root gitignore
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# SDD workspace
+.superpowers/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
