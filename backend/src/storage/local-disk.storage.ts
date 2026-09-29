@@ -89,3 +89,4 @@ export class LocalDiskStorage implements StorageService {
 }
 
 export const localDiskStorage = new LocalDiskStorage();
+export const storageService = localDiskStorage;
