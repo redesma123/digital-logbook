@@ -7,6 +7,9 @@ import { logbookRouter } from './logbook.routes.js';
 import { incidentRouter } from './incident.routes.js';
 import { maintenanceRouter } from './maintenance.routes.js';
 import { attachmentRouter } from './attachment.routes.js';
+import { dashboardRouter } from './dashboard.routes.js';
+import { analyticsRouter } from './analytics.routes.js';
+import { exportRouter } from './export.routes.js';
 
 export const router = Router();
 
@@ -22,3 +25,6 @@ router.use('/logbook', logbookRouter);
 router.use('/incidents', incidentRouter);
 router.use('/maintenance', maintenanceRouter);
 router.use('/attachments', attachmentRouter);
+router.use('/dashboard', dashboardRouter);
+router.use('/analytics', analyticsRouter);
+router.use('/export', exportRouter);
