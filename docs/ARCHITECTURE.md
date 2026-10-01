@@ -40,8 +40,8 @@ HYDRO-MON terdiri dari dua klien dan satu backend:
                                 |                                  |
                                 v                                  v
                         +------------------+             +-------------------+
-                        | PostgreSQL       |             | Docker Volume:    |
-                        | Container        |             | foto              |
+                        | PostgreSQL       |             | Direktori Disk:   |
+                        | (Native Service) |             | uploads/          |
                         +------------------+             +-------------------+
                                 |                                  |
                                 +----------------------------------+
@@ -88,7 +88,7 @@ HYDRO-MON terdiri dari dua klien dan satu backend:
 - `exceljs` dan CSV digunakan untuk export laporan (XLSX dan CSV).
 
 ### 3.4 Database (PostgreSQL)
-- Berjalan di container terpisah.
+- Berjalan sebagai layanan sistem operasi asli (native OS service/systemd) pada localhost:5432.
 - Memiliki constraint unik pada logbook: 1 entri per unit per tanggal per shift.
 - Menerapkan soft delete untuk logbook, gangguan, dan maintenance.
 - Nilai kapasitas terpasang, debit desain, dan head desain dikonfigurasi saat setup awal pada entitas unit.
@@ -114,9 +114,9 @@ HYDRO-MON terdiri dari dua klien dan satu backend:
 | ORM | Prisma | Type-safe query dan kemudahan penulisan skema dan migrasi. |
 | Database | PostgreSQL | Tangguh, handal menjaga integritas data tinggi, dan cocok untuk workload analitik. |
 | Autentikasi | JWT + bcrypt | Stateless session mempermudah skalabilitas, bcrypt mengamankan data sensitif. |
-| Storage Foto | LocalDiskStorage (VPS) | Hemat biaya awal, penyimpanan difasilitasi oleh Docker volume. |
+| Storage Foto | LocalDiskStorage (Disk Server) | Hemat biaya awal, berkas disimpan langsung pada direktori disk lokal server. |
 | Export | exceljs + CSV | Menghasilkan laporan XLSX dan CSV sesuai kebutuhan format pelaporan klien. |
-| Deployment | Docker Compose | Orkestrasi container yang portabel dan efisien pada arsitektur server tunggal. |
+| Deployment | PM2 + Native OS | Sangat ringan, konsumsi RAM rendah (<1 GB), bebas overhead proses tambahan. |
 | Reverse Proxy | Caddy | Mengatur traffic masuk dan memfasilitasi HTTPS dengan otomatisasi Let's Encrypt out-of-the-box. |
 
 ## 5. Alur Data Utama
@@ -172,7 +172,7 @@ interface StorageService {
 }
 ```
 
-Implementasi `LocalDiskStorage` ditetapkan sebagai mekanisme penyimpanan baku pada Docker Volume. Pola abstraksi ini menunjang transisi ke penyedia *object storage* seperti `S3Storage` di masa depan tanpa mengubah kode implementasi pada tingkat *controller*.
+Implementasi `LocalDiskStorage` ditetapkan sebagai mekanisme penyimpanan baku pada direktori disk lokal server. Pola abstraksi ini menunjang transisi ke penyedia *object storage* seperti `S3Storage` di masa depan tanpa mengubah kode implementasi pada tingkat *controller*.
 
 ## 7. Kontrak OpenAPI dan Eksekusi Klien
 Spesifikasi teknis API didasarkan pada dokumen OpenAPI 3 YAML yang berperan sebagai *Source of Truth*. Kode client TypeScript untuk web dan Dart untuk mobile dihasilkan secara otomatis (code generation) dari spesifikasi ini untuk memastikan konsistensi tipe dan endpoint.
@@ -209,13 +209,16 @@ hydro-mon/
 └── docs/
 ```
 
-## 9. Deployment
+## 9. Deployment (Native OS / Tanpa Docker)
 
-Sistem berjalan secara terpusat pada satu server VPS menggunakan Docker Compose.
-- **Spesifikasi Minimum VPS:** 2 vCPU, RAM 4 GB, dan penyimpanan SSD 60 GB.
-- **Layanan Inti:** `backend` (Express), `db` (PostgreSQL), `caddy` (reverse proxy).
-- **Volume Data:** `postgres_data` dan `photo_storage` (dipisahkan secara mandiri).
-- Jaringan bersifat internal untuk keamanan ekstra, hanya Caddy yang bertindak sebagai pintu masuk publik.
+Sistem berjalan secara terpusat pada satu server/VPS atau PC kantor tanpa menggunakan Docker, dirancang agar sangat hemat konsumsi memori dan dapat berjalan lancar pada spesifikasi RAM 1 GB.
+- **Spesifikasi Minimum:** 1 vCPU, RAM 1 GB, SSD 20 GB (atau PC lokal / laptop kantor).
+- **Manajemen Proses:** Backend Node.js dijalankan menggunakan **PM2** (pm2 start dist/server.js --name hydro-api), dilengkapi auto-restart saat reboot sistem (pm2 startup & pm2 save).
+- **Database:** PostgreSQL diinstal secara native langsung pada OS (sudo apt install postgresql) atau menggunakan Managed PostgreSQL cloud (seperti Neon / Supabase). Layanan database berjalan pada localhost:5432 dan hanya menerima koneksi internal.
+- **Penyajian Web:** Aplikasi React dibuild di komputer pengembang (
+pm run build), lalu folder dist/ dipindahkan ke server dan disajikan langsung oleh Caddy sebagai berkas statis (mencegah kehabisan memori server akibat proses build di server 1 GB).
+- **Penyimpanan Foto:** Disimpan di direktori lokal server (misal /var/www/hydro-mon/uploads).
+- **Reverse Proxy & TLS:** Caddy berjalan sebagai service native yang mem-proxy request /api/ ke backend Express (port 3000) dan menyajikan frontend web statis secara langsung dengan otomatisasi sertifikat TLS/HTTPS.
 
 ## 10. Batasan Arsitektur Dasar
 
