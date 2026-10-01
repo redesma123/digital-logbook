@@ -47,8 +47,8 @@
 ## 7. Hardening VPS
 - **Akses Server**: SSH hanya menggunakan autentikasi kunci (password dinonaktifkan).
 - **Firewall**: Menggunakan UFW, hanya port 80, 443, dan port SSH kustom yang terbuka.
-- **Isolasi Database**: PostgreSQL berjalan dalam container backend di jaringan Docker internal dan tidak terekspos ke internet.
-- **Docker Compose**: Setiap service hanya mengekspos port yang diperlukan.
+- **Isolasi Database**: PostgreSQL berjalan secara lokal (127.0.0.1:5432) dan hanya menerima koneksi internal dari backend lokal, tidak terekspos ke port publik/internet.
+- **Proses Non-Root**: Backend Express dijalankan oleh PM2 di bawah akun user sistem non-root (hydroapp), membatasi hak akses pada sistem operasi.
 - **Reverse Proxy**: Caddy menangani proxy ke backend dengan TLS otomatis dari Let's Encrypt.
 - **Manajemen Rahasia**: Environment variables sensitif disimpan dalam file `.env` di server dan tidak di-commit ke repositori.
 
