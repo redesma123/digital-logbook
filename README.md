@@ -23,7 +23,7 @@ hydro-mon/
 - **Node.js**: Versi 18 atau lebih tinggi
 - **PostgreSQL**: Versi 14 atau lebih tinggi
 - **Flutter SDK**: Versi 3.x
-- **Docker & Docker Compose**: Untuk keperluan *deployment*
+- **PM2**: Untuk manajemen proses backend di server (deployment native non-Docker)
 
 ## Referensi Dokumentasi
 Seluruh rincian spesifikasi teknis dan aturan bisnis didokumentasikan pada direktori `docs/`:

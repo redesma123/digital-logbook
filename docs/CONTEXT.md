@@ -28,7 +28,7 @@ Monorepo dengan tiga bagian:
 | Kontrak API | OpenAPI 3 |
 | Storage foto | Disk VPS via StorageService interface |
 | Backup | pg_dump harian + salinan foto ke object storage eksternal |
-| Deployment | Docker Compose + Caddy (reverse proxy + TLS) |
+| Deployment | PM2 + Caddy (Native OS, tanpa Docker) |
 | Export | exceljs (XLSX) + CSV |
 
 ## 6. Keputusan Desain Utama
