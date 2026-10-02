@@ -9,6 +9,8 @@ import '../../features/logbook/presentation/detail_logbook_screen.dart';
 import '../../features/logbook/presentation/history_logbook_screen.dart';
 import '../../features/incident/presentation/incident_list_screen.dart';
 import '../../features/incident/presentation/input_incident_screen.dart';
+import '../../features/maintenance/presentation/maintenance_list_screen.dart';
+import '../../features/maintenance/presentation/input_maintenance_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -132,6 +134,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const InputIncidentScreen(),
+          transitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              child: child,
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: '/maintenance',
+        name: 'maintenance',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const MaintenanceListScreen(),
+          transitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: '/input-maintenance',
+        name: 'input-maintenance',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const InputMaintenanceScreen(),
           transitionDuration: const Duration(milliseconds: 300),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return SlideTransition(

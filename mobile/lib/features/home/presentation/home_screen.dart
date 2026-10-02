@@ -38,6 +38,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context.push('/history-logbook');
     } else if (route == '/gangguan') {
       context.push('/incidents');
+    } else if (route == '/maintenance') {
+      context.push('/maintenance');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
