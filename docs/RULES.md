@@ -132,3 +132,26 @@ hydro-mon/
 ├── api-spec/         # OpenAPI 3 YAML/JSON (sumber kebenaran kontrak)
 └── docs/             # Dokumentasi teknis
 ```
+
+## 5. Standar Pengujian & CI/CD Gate (Quality Gate)
+
+Untuk menjaga stabilitas aplikasi di setiap platform, berlaku prinsip **"No Test, No Merge"**.
+
+### 5.1 Kewajiban Pengujian Tiap Platform
+- **Backend (`backend/`)**:
+  - Wajib lulus TypeScript Typecheck (`npx tsc --noEmit`).
+  - Setiap endpoint baru atau perubahan logika wajib disertai **Unit Test** atau **Integration Test** menggunakan Vitest + Supertest.
+  - Pengujian integrasi database wajib memverifikasi migrasi Prisma & seed data.
+  - Wajib lolos build check (`npm run build`).
+- **Web Frontend (`web/`)**:
+  - Wajib lulus TypeScript Typecheck & Vite build (`npm run build`).
+  - Form transaksi & validasi input wajib memiliki pengujian komponen untuk mencegah submit ganda dan input tidak valid.
+- **Mobile Client (`mobile/`)**:
+  - Wajib lolos analisis kode statis (`flutter analyze`) tanpa error atau peringatan kritis.
+  - Pengujian logika state management dan serialisasi JSON model (`flutter test`).
+
+### 5.2 Kebijakan Branch & Merge
+- Setiap pengembang bebas membuat feature branch atau sub-branch (misal `feat/*`, `bugfix/*`).
+- Setiap `git push` atau pembuatan Pull Request (PR) ke branch tujuan manapun secara otomatis memicu **GitHub Actions CI**.
+- PR hanya boleh di-merge jika seluruh job CI pada platform terkait berstatus **HIJAU (PASSED)**.
+
