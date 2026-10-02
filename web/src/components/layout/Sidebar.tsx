@@ -57,7 +57,16 @@ const Sidebar = () => {
               Trend Parameter
             </NavLink>
           </li>
-          <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Gangguan</a></li>
+          <li>
+            <NavLink 
+              to="/gangguan" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-[#1E293B] text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
+              }
+            >
+              Gangguan
+            </NavLink>
+          </li>
           <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Maintenance</a></li>
           <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Produksi Energi</a></li>
         </ul>
