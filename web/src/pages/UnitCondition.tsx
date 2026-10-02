@@ -25,7 +25,7 @@ const UnitCondition = () => {
                   <p className="text-sm font-semibold text-slate-700">PLTMH Unit 1 — 500 kW</p>
                 </div>
               </div>
-              <Button variant="outline" className="text-xs h-8 flex items-center gap-2 bg-white text-slate-600 border-slate-200 hover:bg-slate-50 w-fit px-3">
+              <Button className="text-xs h-8 flex items-center gap-2 bg-white text-slate-600 border-slate-200 hover:bg-slate-50 w-fit px-3">
                 <RefreshCw size={14} />
                 Refresh Data
               </Button>
@@ -332,7 +332,7 @@ const UnitCondition = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" className="text-xs h-9 bg-white border-slate-300 font-semibold text-slate-800 w-fit px-4 whitespace-nowrap">
+                <Button className="text-xs h-9 bg-white border-slate-300 font-semibold text-slate-800 w-fit px-4 whitespace-nowrap">
                   Buka Logbook Lengkap →
                 </Button>
               </CardContent>
