@@ -1,6 +1,6 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import logoImage from '@/assets/logo.png';
+import Sidebar from '../components/layout/Sidebar';
+import Header from '../components/layout/Header';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 const trendData = [
@@ -28,44 +28,11 @@ const energyData = [
 const Dashboard = () => {
   return (
     <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col hidden md:flex">
-        <div className="p-4 flex items-center gap-3 border-b border-slate-200">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <img src={logoImage} alt="HYDRO-MON Logo" className="w-full h-full object-contain mix-blend-multiply" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-[15px] tracking-tight text-[#0F4C81] leading-none mb-1">HYDRO-MON</h1>
-            <p className="text-[0.6rem] text-slate-600 font-bold tracking-wider leading-[1.1] uppercase">
-              Digital Monitoring &<br/>Performance System
-            </p>
-          </div>
-        </div>
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-3">
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-[#1E293B] text-white">Dashboard</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Kondisi Unit</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Histori Operasi</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Trend Parameter</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Gangguan</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Maintenance</a></li>
-            <li><a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">Produksi Energi</a></li>
-          </ul>
-        </nav>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-end px-6">
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-sm font-semibold text-slate-900 leading-none">Agus Setiawan</div>
-              <div className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest mt-1">SUPERVISOR</div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
-          </div>
-        </header>
+        <Header />
 
         {/* Dashboard Content */}
         <div className="flex-1 overflow-auto p-6">
@@ -181,7 +148,7 @@ const Dashboard = () => {
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
                         <RechartsTooltip cursor={{fill: '#f1f5f9'}} />
                         <Bar dataKey="energy" radius={[2, 2, 0, 0]} barSize={16}>
-                          {energyData.map((entry, index) => (
+                          {energyData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={index === energyData.length - 1 || index === energyData.length - 2 ? '#0284c7' : '#93c5fd'} />
                           ))}
                         </Bar>
