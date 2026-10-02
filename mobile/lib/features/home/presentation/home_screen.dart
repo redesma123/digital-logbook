@@ -36,6 +36,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _handleQuickAction(String route) {
     if (route == '/logbook') {
       context.push('/history-logbook');
+    } else if (route == '/gangguan') {
+      context.push('/incidents');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
