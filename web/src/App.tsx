@@ -3,6 +3,7 @@ import LoginPage from './pages/login';
 import Dashboard from './pages/Dashboard';
 import UnitCondition from './pages/UnitCondition';
 import HistoryOperasi from './pages/HistoryOperasi';
+import TrendParameter from './pages/TrendParameter';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/kondisi-unit" element={<UnitCondition />} />
         <Route path="/history-operasi" element={<HistoryOperasi />} />
+        <Route path="/trend-parameter" element={<TrendParameter />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
