@@ -51,12 +51,14 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _loadPreferences() async {
-    final rememberMe = await _storage.getRememberMe();
-    final savedUsername = await _storage.getSavedUsername();
-    state = state.copyWith(
-      rememberMe: rememberMe,
-      savedUsername: savedUsername,
-    );
+    try {
+      final rememberMe = await _storage.getRememberMe();
+      final savedUsername = await _storage.getSavedUsername();
+      state = state.copyWith(
+        rememberMe: rememberMe,
+        savedUsername: savedUsername,
+      );
+    } catch (_) {}
   }
 
   void toggleRememberMe(bool? value) {

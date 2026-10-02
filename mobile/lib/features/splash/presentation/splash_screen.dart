@@ -11,37 +11,68 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
+  late final AnimationController _animController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _animController.forward();
     _startTimer();
   }
 
   void _startTimer() {
-    _timer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/login');
-      }
+    _timer = Timer(const Duration(milliseconds: 2800), () {
+      _navigateToLogin();
     });
+  }
+
+  void _navigateToLogin() {
+    if (mounted) {
+      _timer?.cancel();
+      context.go('/login');
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _animController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () {
-          _timer?.cancel();
-          context.go('/login');
-        },
+        onTap: _navigateToLogin,
+        behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
             // Full Screen Background Photo
@@ -53,77 +84,117 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
 
-            // Full Screen Dark Overlay for maximum readability & mood
+            // Subtle Cinematic Vignette & Gradient Overlay
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.35),
-                      Colors.black.withValues(alpha: 0.55),
-                      Colors.black.withValues(alpha: 0.70),
+                      Color(0x55000000), // Soft top darkness
+                      Color(0x77051329), // Deep blue-tinted middle
+                      Color(0xBB000000), // Clean dark bottom
                     ],
+                    stops: [0.0, 0.5, 1.0],
                   ),
                 ),
               ),
             ),
 
-            // Centered Branding Content
+            // Centered Branding Content with smooth entrance animation
             SafeArea(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Water Drop Turbine Logo
-                      Image.asset(
-                        AppAssets.iconLogo,
-                        width: 140,
-                        height: 140,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 24),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Water Drop Turbine Logo with soft glow
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF0284C7).withValues(alpha: 0.28),
+                                  blurRadius: 36,
+                                  spreadRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Image.asset(
+                              AppAssets.iconLogo,
+                              width: 130,
+                              height: 130,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
 
-                      // App Title
-                      Text(
-                        'HYDRO-MON',
-                        style: GoogleFonts.inter(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                          // App Title - Clean, Modern & Elegant Typography
+                          Text(
+                            'HYDRO-MON',
+                            style: GoogleFonts.inter(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2.2,
+                              color: Colors.white,
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x66000000),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
 
-                      // Subtitle
-                      Text(
-                        'Digital Logbook & Monitoring',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.3,
-                          color: Colors.white.withValues(alpha: 0.95),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
+                          // Subtitle 1 - Clean lighter weight
+                          Text(
+                            'Digital Logbook & Monitoring',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.6,
+                              color: const Color(0xFFE2E8F0),
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x88000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
 
-                      // Plant Location
-                      Text(
-                        'PLTMH Sampean Baru',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.3,
-                          color: Colors.white.withValues(alpha: 0.95),
-                        ),
+                          // Subtitle 2 - Plant Location
+                          Text(
+                            'PLTMH Sampean Baru',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.6,
+                              color: const Color(0xFF93C5FD), // Soft aesthetic blue accent
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x88000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
