@@ -11,6 +11,6 @@ void main() {
     );
 
     expect(find.text('HYDRO-MON'), findsWidgets);
-    expect(find.text('PLTMh Sampean Baru'), findsOneWidget);
+    expect(find.text('PLTMH Sampean Baru'), findsOneWidget);
   });
 }
