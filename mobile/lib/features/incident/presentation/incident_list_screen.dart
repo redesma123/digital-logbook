@@ -249,7 +249,7 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
         border: Border.all(color: AppColors.neutral200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: const Color(0x05000000),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
