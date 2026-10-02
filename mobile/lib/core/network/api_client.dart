@@ -1,16 +1,19 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
 
 final apiClientProvider = Provider<Dio>((ref) {
   final storage = ref.watch(secureStorageServiceProvider);
-  const baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000/api/v1');
+  const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  final defaultBaseUrl = kIsWeb ? 'http://localhost:3000/api/v1' : 'http://10.0.2.2:3000/api/v1';
+  final baseUrl = configuredBaseUrl.isNotEmpty ? configuredBaseUrl : defaultBaseUrl;
 
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
