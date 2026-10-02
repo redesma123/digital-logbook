@@ -1,7 +1,7 @@
 import { Card, CardContent } from '../components/ui/card';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
-import { Download, Filter, Search } from 'lucide-react';
+import { Download, Filter } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 const HistoryOperasi = () => {
@@ -16,7 +16,7 @@ const HistoryOperasi = () => {
         {/* Page Content */}
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-[1400px] mx-auto space-y-4">
-            
+
             {/* Page Header */}
             <div>
               <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Histori Operasi (Logbook Harian)</h2>
@@ -34,12 +34,12 @@ const HistoryOperasi = () => {
                         <option>PLTMH Unit 1 — 500 kW</option>
                       </select>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">TANGGAL:</label>
                       <input type="date" defaultValue="2024-10-24" className="h-8 text-sm border-slate-200 rounded bg-white text-slate-700 px-2 outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">SHIFT:</label>
                       <select className="h-8 text-sm border-slate-200 rounded bg-white text-slate-700 px-2 outline-none focus:ring-1 focus:ring-blue-500">
@@ -97,7 +97,7 @@ const HistoryOperasi = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
-                    
+
                     {/* Row 1 (Active) */}
                     <tr className="bg-blue-50/30 hover:bg-slate-50 cursor-pointer">
                       <td className="px-4 py-3 border-l-2 border-blue-500 font-bold text-slate-900">14:00</td>
@@ -116,7 +116,7 @@ const HistoryOperasi = () => {
                       <td className="px-4 py-3 font-semibold text-slate-700">Pratama</td>
                       <td className="px-4 py-3 text-slate-500 truncate max-w-[200px]">Beban puncak siang, grid PLN stabil</td>
                     </tr>
-                    
+
                     {/* Row 2 */}
                     <tr className="hover:bg-slate-50 cursor-pointer">
                       <td className="px-4 py-3 border-l-2 border-transparent font-bold text-slate-900">13:00</td>
@@ -274,7 +274,7 @@ const HistoryOperasi = () => {
                   <span className="text-slate-400">·</span>
                   <p className="text-sm text-slate-500 italic">Catatan: "Beban puncak siang, grid PLN stabil"</p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Electrical */}
                   <div className="bg-white border border-slate-200 rounded p-4">
