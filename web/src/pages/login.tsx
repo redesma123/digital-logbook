@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { User, Lock, Eye, EyeOff } from 'lucide-react'
@@ -18,6 +19,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
   
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +33,8 @@ export default function LoginPage() {
   const onSubmit = (data: LoginFormValues) => {
     console.log('Login submitted', data)
     // Here would be the Axios call to /api/v1/auth/login
+    // Mock login success by navigating to dashboard
+    navigate('/dashboard')
   }
 
   return (
