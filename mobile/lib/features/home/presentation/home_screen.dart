@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'widgets/home_header.dart';
 import 'widgets/unit_status_card.dart';
@@ -33,13 +34,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleQuickAction(String route) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Membuka menu: $route'),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (route == '/logbook') {
+      context.push('/history-logbook');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Membuka menu: $route'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -103,9 +108,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: HomeBottomNav(
         currentIndex: _currentNavIndex,
         onTap: (index) {
-          setState(() {
-            _currentNavIndex = index;
-          });
+          if (index == 1) {
+            context.push('/history-logbook');
+          } else {
+            setState(() {
+              _currentNavIndex = index;
+            });
+          }
         },
       ),
     );
