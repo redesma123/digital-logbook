@@ -101,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
                 const Spacer(flex: 3),
 
-                // Bottom Landscape Visual Card
+                // Bottom Landscape Visual Card using bg_splash.png
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.12),
+                          color: AppColors.primary.withValues(alpha: 0.15),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -121,47 +121,28 @@ class _SplashScreenState extends State<SplashScreen> {
                       borderRadius: BorderRadius.circular(20),
                       child: Stack(
                         children: [
-                          // Background Image / Gradient Fallback representing PLTMh landscape
+                          // Photo of Bendungan PLTMh Sampean Baru
+                          Positioned.fill(
+                            child: Image.asset(
+                              AppAssets.bgSplash,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                            ),
+                          ),
+
+                          // Gradient Overlay for text contrast & aesthetic look
                           Positioned.fill(
                             child: Container(
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0xFF1E3A8A),
-                                    Color(0xFF0F265C),
+                                    Colors.black.withValues(alpha: 0.15),
+                                    Colors.black.withValues(alpha: 0.78),
                                   ],
+                                  stops: const [0.3, 1.0],
                                 ),
-                              ),
-                              child: Stack(
-                                children: [
-                                  // Subtle Dam / Hydro Silhouette
-                                  Positioned.fill(
-                                    child: Opacity(
-                                      opacity: 0.45,
-                                      child: Image.asset(
-                                        AppAssets.bgLogin,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  // Gradient Overlay for text readability
-                                  Positioned.fill(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.black.withValues(alpha: 0.1),
-                                            Colors.black.withValues(alpha: 0.75),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),
