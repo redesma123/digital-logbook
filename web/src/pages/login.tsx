@@ -31,11 +31,26 @@ export default function LoginPage() {
   })
 
   const onSubmit = (data: LoginFormValues) => {
-    console.log('Login submitted', data)
-    // Here would be the Axios call to /api/v1/auth/login
-    // Mock login success by navigating to dashboard
-    navigate('/dashboard')
-  }
+    console.log('Login submitted', data);
+    const uname = data.username.toLowerCase().trim();
+
+    // Deteksi akun peran Manajemen
+    if (
+      uname.includes('manajemen') ||
+      uname.includes('management') ||
+      uname.includes('manager') ||
+      uname.includes('direksi')
+    ) {
+      localStorage.setItem('user_role', 'MANAJEMEN');
+      localStorage.setItem('user_name', 'Ir. Bambang Trihatmojo');
+      navigate('/manajemen/dashboard');
+    } else {
+      // Default: Supervisor / Operator Dashboard
+      localStorage.setItem('user_role', 'SUPERVISOR');
+      localStorage.setItem('user_name', 'Agus Setiawan');
+      navigate('/dashboard');
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden">

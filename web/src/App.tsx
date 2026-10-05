@@ -7,6 +7,7 @@ import TrendParameter from './pages/TrendParameter';
 import Gangguan from './pages/Gangguan';
 import Maintenance from './pages/Maintenance';
 import ProduksiEnergi from './pages/ProduksiEnergi';
+import ManagementDashboard from './pages/ManagementDashboard';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/manajemen/dashboard" element={<ManagementDashboard />} />
         <Route path="/kondisi-unit" element={<UnitCondition />} />
         <Route path="/history-operasi" element={<HistoryOperasi />} />
         <Route path="/trend-parameter" element={<TrendParameter />} />
