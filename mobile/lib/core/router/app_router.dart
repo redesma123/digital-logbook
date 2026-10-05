@@ -11,6 +11,7 @@ import '../../features/incident/presentation/incident_list_screen.dart';
 import '../../features/incident/presentation/input_incident_screen.dart';
 import '../../features/maintenance/presentation/maintenance_list_screen.dart';
 import '../../features/maintenance/presentation/input_maintenance_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -174,6 +175,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                 begin: const Offset(1, 0),
                 end: Offset.zero,
               ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              child: child,
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ProfileScreen(),
+          transitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
               child: child,
             );
           },

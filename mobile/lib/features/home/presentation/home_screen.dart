@@ -114,6 +114,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onTap: (index) {
           if (index == 1) {
             context.push('/history-logbook');
+          } else if (index == 3) {
+            context.push('/profile');
           } else {
             setState(() {
               _currentNavIndex = index;
