@@ -1,7 +1,15 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import logoImage from '@/assets/logo.png';
+import { LogOut } from 'lucide-react';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_name');
+    navigate('/login', { replace: true });
+  };
   return (
     <aside className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col hidden md:flex">
       <div className="p-4 flex items-center gap-3 border-b border-slate-200">
@@ -89,6 +97,15 @@ const Sidebar = () => {
           </li>
         </ul>
       </nav>
+      <div className="p-3 border-t border-slate-200 bg-slate-50">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+        >
+          <LogOut size={16} />
+          <span>Logout</span>
+        </button>
+      </div>
     </aside>
   );
 };
