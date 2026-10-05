@@ -1,26 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '@/assets/logo.png';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import {
-  Activity,
-  Zap,
-  Gauge,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
   FileSpreadsheet,
   RefreshCw,
   Info,
-  Check,
   LogOut
 } from 'lucide-react';
 import {
   ComposedChart,
   Line,
   Bar,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -83,7 +73,6 @@ const ManagementDashboard = () => {
   const executiveMetrics = {
     // 1. Kondisi PLTMH saat ini
     plantStatus: {
-      overallStatus: 'NORMAL & OPTIMAL',
       totalActivePowerKw: 935,
       totalCapacityKw: 1000,
       loadPercentage: 93.5,
@@ -99,7 +88,6 @@ const ManagementDashboard = () => {
     energyProduction: {
       thisMonthMwh: 558.5,
       targetMonthMwh: 520.0,
-      achievementPercentage: 107.4,
       todayKwh: 10850,
       ytdGwh: 4.90,
       estimatedRevenueIdr: 586425000,
@@ -107,7 +95,6 @@ const ManagementDashboard = () => {
     },
     // 3. Apakah performa turun
     performanceEvaluation: {
-      statusTrend: 'MENINGKAT (+4.2%)',
       isPerformanceDown: false,
       capacityFactorPct: 77.3,
       prevCapacityFactorPct: 74.4,
@@ -119,7 +106,6 @@ const ManagementDashboard = () => {
     // 4. Berapa availability unit
     availability: {
       availabilityFactorPct: 98.1,
-      targetKpiPct: 95.0,
       totalRunningHours: 708,
       totalPeriodHours: 720,
       downtimeHours: 12,
@@ -129,11 +115,9 @@ const ManagementDashboard = () => {
     },
     // 5. Apa saja gangguan yang terjadi
     incidentsSummary: {
-      activeOpenCount: 0,
       activeProcessCount: 1,
       resolvedThisMonthCount: 3,
       totalThisMonth: 4,
-      riskLevel: 'LOW (RENDAH)',
       recentIncidents: [
         {
           id: 1,
@@ -161,637 +145,454 @@ const ManagementDashboard = () => {
     }
   };
 
+
+  // ---------- Helper tampilan ----------
+  type Tone = 'green' | 'amber' | 'blue' | 'slate' | 'red';
+
+  // Badge status: tanpa warna (monokrom netral) dan tanpa titik bulat
+  const Badge = ({ children }: { tone?: Tone; children: ReactNode }) => (
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
+      {children}
+    </span>
+  );
+
+  const periodBtn = (active: boolean) =>
+    `px-3 py-1 text-xs rounded-full cursor-pointer transition-colors ${
+      active ? 'bg-[#0F4C81] text-white font-medium' : 'text-slate-600 hover:text-slate-900'
+    }`;
+
+  const tooltipStyle = {
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '8px',
+    color: '#1E293B',
+    fontSize: '12px',
+    padding: '6px 10px',
+    boxShadow: '0 4px 12px rgba(15,23,42,0.08)'
+  };
+
+  const card = 'bg-white rounded-xl border border-slate-200/80 shadow-[0_2px_8px_rgba(15,23,42,0.05)]';
+  const cardTitle = 'text-sm font-semibold text-slate-800';
+  const cardSub = 'text-xs text-slate-500 mt-0.5';
+
+  const incidents = executiveMetrics.incidentsSummary.recentIncidents;
+  const resolvedPct = Math.round(
+    (executiveMetrics.incidentsSummary.resolvedThisMonthCount / executiveMetrics.incidentsSummary.totalThisMonth) * 100
+  );
+
+  const kpis = [
+    {
+      label: 'Daya aktif',
+      value: String(executiveMetrics.plantStatus.totalActivePowerKw),
+      unit: 'kW',
+      note: `Beban ${executiveMetrics.plantStatus.loadPercentage}% dari 1.000 kW`
+    },
+    {
+      label: 'Energi bulan ini',
+      value: String(executiveMetrics.energyProduction.thisMonthMwh),
+      unit: 'MWh',
+      note: `Hari ini ${executiveMetrics.energyProduction.todayKwh.toLocaleString('id-ID')} kWh`
+    },
+    {
+      label: 'Capacity factor',
+      value: String(executiveMetrics.performanceEvaluation.capacityFactorPct),
+      unit: '%',
+      note: `Efisiensi hidrolik ${executiveMetrics.performanceEvaluation.hydraulicEfficiencyPct}%`
+    },
+    {
+      label: 'Availability factor',
+      value: String(executiveMetrics.availability.availabilityFactorPct),
+      unit: '%',
+      note: `Operasi ${executiveMetrics.availability.totalRunningHours} dari ${executiveMetrics.availability.totalPeriodHours} jam`
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 font-sans flex flex-col">
-      {/* TOP EXECUTIVE NAVIGATION BAR (Mandiri tanpa Sidebar) */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo & Judul Sistem */}
+    <div
+      className="min-h-screen bg-[#EEF2F7] text-slate-800 flex flex-col text-[13px]"
+      style={{ fontFamily: '"IBM Plex Sans", Arial, Helvetica, sans-serif' }}
+    >
+      {/* Header aplikasi */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-              <img src={logoImage} alt="HYDRO-MON Logo" className="w-full h-full object-contain mix-blend-multiply" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-black text-lg tracking-tight text-[#0F4C81] leading-none">HYDRO-MON</h1>
-              </div>
-              <p className="text-[0.65rem] text-slate-500 font-semibold tracking-wider uppercase mt-0.5">
-                Digital Monitoring &bull; PLTMH Sampean Baru
-              </p>
+            <img src={logoImage} alt="HYDRO-MON" className="w-9 h-9 object-contain mix-blend-multiply" />
+            <div className="leading-tight">
+              <h1 className="text-base font-semibold text-[#0F4C81]">HYDRO-MON</h1>
+              <p className="text-xs text-slate-500">PLTMH Sampean Baru</p>
             </div>
           </div>
 
-          {/* Profil Akun Manajemen & Tombol Logout */}
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-sm font-bold text-slate-900 leading-none">Bambang Trihatmojo</div>
-              <div className="text-[0.65rem] font-extrabold text-blue-700 uppercase tracking-widest mt-1">
-                MANAJEMEN
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-[#0F4C81] text-white flex items-center justify-center text-xs font-semibold">
+                BT
+              </div>
+              <div className="leading-tight hidden sm:block">
+                <div className="text-[13px] font-medium text-slate-900">Bambang Trihatmojo</div>
+                <div className="text-xs text-slate-500">Manajemen</div>
               </div>
             </div>
-            <div className="w-9 h-9 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-xs">
-              BT
-            </div>
-            <div className="h-6 w-px bg-slate-200"></div>
+            <div className="h-7 w-px bg-slate-200 mx-1"></div>
             <button
               onClick={handleLogout}
-              title="Keluar Sesi"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-rose-700 hover:text-rose-800 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+              title="Keluar sesi"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 cursor-pointer transition-colors"
             >
               <LogOut size={14} />
-              <span>Keluar</span>
+              <span>Logout</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* KONTEN UTAMA EKSEKUTIF (Full-Width) */}
-      <main className="flex-1 p-6 md:p-8">
-        <div className="max-w-[1600px] mx-auto space-y-6">
-          
-          {/* Header Bar Konten & Tombol Aksi */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <main className="flex-1 px-6 py-5">
+        <div className="max-w-[1600px] mx-auto space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-[0.65rem] font-bold tracking-wider uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                  STRATEGIC OVERVIEW
-                </span>
-                <span className="text-xs text-slate-400 font-medium">• Ringkasan Strategis Pembangkit</span>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">
-                Dashboard Manajemen & Kinerja PLTMH
-              </h2>
-              <p className="text-sm font-medium text-slate-500 mt-0.5">
-                Pemantauan terpusat kondisi real-time, capaian produksi energi, evaluasi tren performa, dan mitigasi gangguan unit.
+              <h2 className="text-lg font-semibold text-slate-900">Dashboard Manajemen</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Capaian produksi, keandalan unit, dan gangguan &middot; Oktober 2026
               </p>
             </div>
-
-            {/* Action & Filter Buttons */}
-            <div className="flex items-center flex-wrap gap-2.5">
-              {/* Period Selector */}
-              <div className="bg-white border border-slate-200 rounded p-0.5 flex text-xs font-semibold shadow-xs">
-                <button
-                  onClick={() => setPeriodFilter('month')}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    periodFilter === 'month'
-                      ? 'bg-[#0F4C81] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Bulan Berjalan (Okt)
-                </button>
-                <button
-                  onClick={() => setPeriodFilter('week')}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    periodFilter === 'week'
-                      ? 'bg-[#0F4C81] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  7 Hari Terakhir
-                </button>
-              </div>
-
-              <Button
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
                 onClick={() => alert('Mengunduh Laporan Ringkasan Eksekutif Manajemen format CSV/Excel.')}
-                className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs h-8 px-3 shadow-xs rounded flex items-center"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs"
               >
-                <FileSpreadsheet size={14} className="mr-1.5 text-emerald-600" />
-                Ekspor Ringkasan
-              </Button>
-
-              <Button
+                <FileSpreadsheet size={14} />
+                Ekspor CSV
+              </button>
+              <button
+                type="button"
                 onClick={() => alert('Data eksekutif berhasil disegarkan.')}
-                className="bg-[#0F4C81] hover:bg-[#0c3d66] text-white font-semibold text-xs h-8 px-3 shadow-xs rounded flex items-center"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F4C81] hover:bg-[#0c3d66] text-white rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs"
               >
-                <RefreshCw size={13} className="mr-1.5" />
+                <RefreshCw size={14} />
                 Perbarui
-              </Button>
+              </button>
             </div>
           </div>
 
-          {/* SECTION 1: 5 KARTU METRIK EKSEKUTIF (Menjawab 5 Pertanyaan Kunci Manajemen) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            
-            {/* KARTU 1: Bagaimana kondisi PLTMH saat ini? */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-emerald-50/30 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">
-                    Kondisi Unit Saat Ini
-                  </p>
+          {/* KPI utama */}
+          <section aria-label="Indikator utama" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+            {kpis.map((k) => (
+              <div key={k.label} className={`${card} px-4 py-3.5`}>
+                <span className="text-xs font-medium text-slate-500">{k.label}</span>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{k.value}</span>
+                  <span className="text-sm text-slate-500">{k.unit}</span>
                 </div>
-                <div className="mt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-slate-900">
-                      {executiveMetrics.plantStatus.totalActivePowerKw}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">kW</span>
-                  </div>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                    <CheckCircle2 size={13} className="text-emerald-600" />
-                    {executiveMetrics.plantStatus.overallStatus}
-                  </p>
-                </div>
+                <div className="text-xs text-slate-500 mt-1">{k.note}</div>
               </div>
-              <div className="pt-3 border-t border-slate-100 text-[0.7rem] text-slate-500 mt-2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Beban Operasi:</span>
-                  <strong className="text-slate-800">{executiveMetrics.plantStatus.loadPercentage}% Kapasitas</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Unit 1 / Unit 2:</span>
-                  <strong className="text-slate-800">475 kW / 460 kW</strong>
-                </div>
-              </div>
-            </Card>
+            ))}
 
-            {/* KARTU 2: Berapa energi yang dihasilkan? */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-blue-50/30 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">
-                    Energi Dihasilkan
-                  </p>
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-[#0F4C81]">
-                      {executiveMetrics.energyProduction.thisMonthMwh}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">MWh</span>
-                  </div>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                    <TrendingUp size={13} className="text-emerald-600" />
-                    {executiveMetrics.energyProduction.achievementPercentage}% Target PLN
-                  </p>
-                </div>
+            <div className={`${card} px-4 py-3.5`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-slate-500">Gangguan bulan ini</span>
+                <Badge tone="amber">{executiveMetrics.incidentsSummary.activeProcessCount} aktif</Badge>
               </div>
-              <div className="pt-3 border-t border-slate-100 text-[0.7rem] text-slate-500 mt-2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Hari Ini:</span>
-                  <strong className="text-slate-800">{executiveMetrics.energyProduction.todayKwh.toLocaleString('id-ID')} kWh</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Est. Pendapatan:</span>
-                  <strong className="text-emerald-700">Rp 586,4 Juta</strong>
-                </div>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">
+                  {executiveMetrics.incidentsSummary.totalThisMonth}
+                </span>
+                <span className="text-sm text-slate-500">kejadian</span>
               </div>
-            </Card>
+              <div className="text-xs text-slate-500 mt-1">
+                {executiveMetrics.incidentsSummary.resolvedThisMonthCount} selesai &middot; {resolvedPct}%
+              </div>
+            </div>
+          </section>
 
-            {/* KARTU 3: Apakah performa turun? */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-cyan-50/30 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">
-                   Evaluasi Performa
-                  </p>
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-cyan-800">
-                      {executiveMetrics.performanceEvaluation.capacityFactorPct}%
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">CF</span>
-                  </div>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                    <TrendingUp size={13} className="text-emerald-600" />
-                    Tidak Turun ({executiveMetrics.performanceEvaluation.statusTrend})
-                  </p>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-slate-100 text-[0.7rem] text-slate-500 mt-2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Efisiensi Air:</span>
-                  <strong className="text-slate-800">{executiveMetrics.performanceEvaluation.hydraulicEfficiencyPct}% Desain</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Indeks Kesehatan:</span>
-                  <strong className="text-emerald-700">94 / 100 (Prima)</strong>
-                </div>
-              </div>
-            </Card>
-
-            {/* KARTU 4: Berapa availability unit? */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-indigo-50/30 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">
-                    Availability Unit
-                  </p>
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-indigo-900">
-                      {executiveMetrics.availability.availabilityFactorPct}%
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">AF</span>
-                  </div>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                    <Check size={13} className="text-emerald-600" />
-                    Melampaui Target (&gt;{executiveMetrics.availability.targetKpiPct}%)
-                  </p>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-slate-100 text-[0.7rem] text-slate-500 mt-2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Jam Operasi:</span>
-                  <strong className="text-slate-800">{executiveMetrics.availability.totalRunningHours} / {executiveMetrics.availability.totalPeriodHours} Jam</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Downtime:</span>
-                  <strong className="text-slate-800">12 Jam (Terjadwal)</strong>
-                </div>
-              </div>
-            </Card>
-
-            {/* KARTU 5: Apa saja gangguan yang terjadi? */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-amber-50/30 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">
-                    Status Gangguan
-                  </p>
-                </div>
-                <div className="mt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-amber-700">
-                      {executiveMetrics.incidentsSummary.activeProcessCount}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">Dalam Penanganan</span>
-                  </div>
-                  <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
-                    <CheckCircle2 size={13} className="text-emerald-600" />
-                    0 Gangguan Open (Kritis)
-                  </p>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-slate-100 text-[0.7rem] text-slate-500 mt-2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Tingkat Risiko:</span>
-                  <strong className="text-emerald-700">{executiveMetrics.incidentsSummary.riskLevel}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Bulan Ini:</span>
-                  <strong className="text-slate-800">{executiveMetrics.incidentsSummary.totalThisMonth} Insiden (Terkendali)</strong>
-                </div>
-              </div>
-            </Card>
-
-          </div>
-
-          {/* SECTION 2: CHARTS & VISUAL ANALYTICS (Target vs Realisasi & Tren Performa) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* GRAFIK 1: Produksi Energi vs Target Kontrak PLN */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+            {/* Kolom utama (lebar) */}
+            <div className="xl:col-span-8 space-y-5">
+              {/* Produksi */}
+              <section aria-label="Realisasi produksi" className={card}>
+                <div className="px-5 pt-4 pb-2 flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   <div>
-                    <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <Zap size={16} className="text-[#0F4C81]" />
-                      Realisasi Produksi vs Target Kontrak PLN (PPA)
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    <h3 className={cardTitle}>Realisasi produksi vs target kontrak PLN (PPA)</h3>
+                    <p className={cardSub}>
                       {periodFilter === 'month'
-                        ? 'Perbandingan tren bulanan pasokan energi MWh ke grid 20 kV PLN'
-                        : 'Realisasi output energi harian (MWh) sepekan terakhir'}
-                    </CardDescription>
-                  </div>
-                  <span className="text-[0.65rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
-                    Surplus +7.4%
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px] w-full mt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart
-                      data={periodFilter === 'month' ? monthlyProductionTrend : dailyRecentData}
-                      margin={{ top: 10, right: 10, bottom: 5, left: -10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis
-                        dataKey="label"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: '#64748b' }}
-                      />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                      <RechartsTooltip
-                        formatter={(value: any, name: any) => [
-                          `${value} MWh`,
-                          name === 'energy' ? 'Realisasi Produksi' : 'Target PPA PLN'
-                        ]}
-                        contentStyle={{
-                          backgroundColor: '#0F172A',
-                          borderColor: '#334155',
-                          borderRadius: '6px',
-                          color: '#fff',
-                          fontSize: '12px'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        iconType="circle"
-                        wrapperStyle={{ paddingBottom: '10px', fontSize: '12px' }}
-                        formatter={(val) => (val === 'energy' ? 'Realisasi Produksi' : 'Target PLN')}
-                      />
-                      <Bar dataKey="energy" name="energy" fill="#0F4C81" radius={[4, 4, 0, 0]} barSize={26} />
-                      <Line
-                        type="monotone"
-                        dataKey="target"
-                        name="target"
-                        stroke="#10B981"
-                        strokeWidth={2.5}
-                        strokeDasharray="4 4"
-                        dot={{ r: 4, fill: '#10B981' }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div>
-                    Target Rata-rata: <strong className="text-slate-800">520 MWh/Bulan</strong>
-                  </div>
-                  <div>
-                    Status PPA: <strong className="text-emerald-700">Memenuhi Minimum Take-or-Pay</strong>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* GRAFIK 2: Tren Performa (Capacity Factor & Availability Factor vs Target) */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <Gauge size={16} className="text-cyan-600" />
-                      Tren Stabilitas Performa (Capacity Factor & Availability)
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 mt-0.5">
-                      Menjawab parameter apakah performa mesin mengalami degradasi terhadap waktu
-                    </CardDescription>
-                  </div>
-                  <span className="text-[0.65rem] font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
-                    Kondisi: Prima
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[260px] w-full mt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={monthlyProductionTrend} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} domain={[50, 100]} />
-                      <RechartsTooltip
-                        formatter={(value: any, name: any) => [
-                          `${value}%`,
-                          name === 'af' ? 'Availability Factor (AF)' : 'Capacity Factor (CF)'
-                        ]}
-                        contentStyle={{
-                          backgroundColor: '#0F172A',
-                          borderColor: '#334155',
-                          borderRadius: '6px',
-                          color: '#fff',
-                          fontSize: '12px'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        iconType="circle"
-                        wrapperStyle={{ paddingBottom: '10px', fontSize: '12px' }}
-                        formatter={(val) => (val === 'af' ? 'Availability (AF %)' : 'Capacity Factor (CF %)')}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="af"
-                        name="af"
-                        fill="#38bdf8"
-                        fillOpacity={0.2}
-                        stroke="#0284c7"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#0284c7' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="cf"
-                        name="cf"
-                        stroke="#10b981"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#10b981' }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div>
-                    Benchmark CF: <strong className="text-slate-800">&gt;70% (Tercapai: 77.3%)</strong>
-                  </div>
-                  <div>
-                    Target AF: <strong className="text-slate-800">&gt;95% (Tercapai: 98.1%)</strong>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-          </div>
-
-          {/* SECTION 3: DEEP-DIVE DUA KOLOM: KONDISI UNIT DETAIL vs GANGGUAN TERKINI */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* KOLOM KIRI: STATUS DETAIL UNIT 1 & UNIT 2 (Menjawab: Bagaimana kondisi PLTMH saat ini?) */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md">
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <Activity size={16} className="text-[#0F4C81]" />
-                      Status Operasional Detail Turbin & Generator
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Kondisi teknis mekanikal dan elektrikal per unit PLTMH Sampean Baru
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                {/* Kartu Unit 1 */}
-                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                      <h4 className="font-bold text-sm text-slate-900">PLTMH Unit 1 &mdash; 500 kW</h4>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      RUNNING (SINKRON)
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Output Daya</span>
-                      <strong className="text-sm font-black text-slate-900">475 kW</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">95% Beban</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Tegangan</span>
-                      <strong className="text-sm font-bold text-slate-800">398 V</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">Frekuensi: 50.0 Hz</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Debit Air</span>
-                      <strong className="text-sm font-bold text-cyan-700">2.51 m³/s</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">Desain: 2.65 m³/s</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Suhu Bearing</span>
-                      <strong className="text-sm font-bold text-amber-700">76°C</strong>
-                      <span className="text-[0.65rem] text-amber-600 block">Dalam Pengawasan</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Kartu Unit 2 */}
-                <div className="p-4 bg-slate-50 rounded-md border border-slate-200">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                      <h4 className="font-bold text-sm text-slate-900">PLTMH Unit 2 &mdash; 500 kW</h4>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      RUNNING (SINKRON)
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Output Daya</span>
-                      <strong className="text-sm font-black text-slate-900">460 kW</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">92% Beban</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Tegangan</span>
-                      <strong className="text-sm font-bold text-slate-800">400 V</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">Frekuensi: 50.0 Hz</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Debit Air</span>
-                      <strong className="text-sm font-bold text-cyan-700">2.48 m³/s</strong>
-                      <span className="text-[0.65rem] text-slate-400 block">Desain: 2.65 m³/s</span>
-                    </div>
-                    <div>
-                      <span className="text-[0.65rem] font-semibold text-slate-400 block uppercase">Suhu Bearing</span>
-                      <strong className="text-sm font-bold text-emerald-700">68°C</strong>
-                      <span className="text-[0.65rem] text-emerald-600 block">Kondisi Normal</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KOLOM KANAN: DAFTAR GANGGUAN TERKINI (Menjawab: Apa saja gangguan yang terjadi?) */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md">
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <AlertTriangle size={16} className="text-amber-600" />
-                      Log Gangguan Aktif & Riwayat Insiden Terakhir
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Insiden operasional yang berdampak pada keandalan daya dan tindakan teknis
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-5 space-y-3">
-                {executiveMetrics.incidentsSummary.recentIncidents.map((incident) => (
-                  <div
-                    key={incident.id}
-                    className="p-3.5 rounded-md border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs bg-slate-200 px-2 py-0.5 rounded text-slate-800">
-                          {incident.code}
-                        </span>
-                        <span className="font-bold text-xs text-slate-900">{incident.equipment}</span>
-                        <span className="text-[0.65rem] text-slate-500 font-semibold">({incident.unit})</span>
-                      </div>
-                      {incident.status === 'PROCESS' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[0.65rem] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 animate-pulse"></span>
-                          PROCESS
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[0.65rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 size={10} className="mr-1 text-emerald-600" />
-                          CLOSED
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                      {incident.issue}
+                        ? 'Energi bulanan ke grid PLN (MWh)'
+                        : 'Energi harian 7 hari terakhir (MWh)'}
                     </p>
-                    <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[0.68rem] text-slate-500">
-                      <span>
-                        Dampak: <strong className="text-slate-800">{incident.impact}</strong>
-                      </span>
-                      <span className="font-mono text-slate-400">{incident.occurredAt}</span>
-                    </div>
                   </div>
-                ))}
-
-                {/* Keterangan Status Manajemen */}
-                <div className="p-3 bg-blue-50/60 border border-blue-200 rounded text-xs text-blue-900 flex items-start gap-2">
-                  <Info size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block text-blue-950 font-semibold mb-0.5">Catatan Mitigasi Risiko:</strong>
-                    Semua gangguan yang terjadi berada dalam kategori penanganan terkontrol. Tidak terdapat potensi blackout total atau sanksi penalti deviasi suplai dari PLN.
+                  <div className="flex gap-0.5 bg-slate-100 rounded-full p-0.5 shrink-0 self-start">
+                    <button type="button" onClick={() => setPeriodFilter('month')} className={periodBtn(periodFilter === 'month')}>
+                      Bulan berjalan (Okt)
+                    </button>
+                    <button type="button" onClick={() => setPeriodFilter('week')} className={periodBtn(periodFilter === 'week')}>
+                      7 hari terakhir
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="px-4">
+                  <div className="h-[260px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart
+                        data={periodFilter === 'month' ? monthlyProductionTrend : dailyRecentData}
+                        margin={{ top: 6, right: 8, bottom: 0, left: -12 }}
+                      >
+                        <CartesianGrid stroke="#EEF2F7" vertical={false} />
+                        <XAxis dataKey="label" axisLine={{ stroke: '#CBD5E1' }} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                        <RechartsTooltip
+                          formatter={(value: any, name: any) => [`${value} MWh`, name === 'energy' ? 'Realisasi' : 'Target PPA']}
+                          contentStyle={tooltipStyle}
+                        />
+                        <Legend
+                          verticalAlign="top"
+                          align="right"
+                          iconType="circle"
+                          iconSize={8}
+                          wrapperStyle={{ paddingBottom: '8px', fontSize: '12px' }}
+                          formatter={(val) => (val === 'energy' ? 'Realisasi' : 'Target PPA')}
+                        />
+                        <Bar dataKey="energy" name="energy" fill="#0F4C81" barSize={20} radius={[4, 4, 0, 0]} />
+                        <Line
+                          type="monotone"
+                          dataKey="target"
+                          name="target"
+                          stroke="#F59E0B"
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: '#F59E0B', strokeWidth: 0 }}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="px-5 py-3 mt-1 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                  <span>Target PLN: <span className="font-medium text-slate-900">520 MWh/bulan</span></span>
+                  <Badge tone="green">Minimum take-or-pay terpenuhi</Badge>
+                </div>
+              </section>
 
-          </div>
+              {/* CF & AF (Dipindah ke kolom kiri yang lebih lebar) */}
+              <section aria-label="Tren performa" className={card}>
+                <div className="px-5 pt-4 pb-2">
+                  <h3 className={cardTitle}>Tren CF dan AF</h3>
+                  <p className={cardSub}>Persentase per bulan, Mei &ndash; Okt 2026</p>
+                </div>
+                <div className="px-4">
+                  <div className="h-[260px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={monthlyProductionTrend} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
+                        <CartesianGrid stroke="#EEF2F7" vertical={false} />
+                        <XAxis
+                          dataKey="label"
+                          axisLine={{ stroke: '#CBD5E1' }}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: '#64748B' }}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} domain={[50, 100]} />
+                        <RechartsTooltip
+                          formatter={(value: any, name: any) => [`${value}%`, name === 'af' ? 'Availability' : 'Capacity factor']}
+                          contentStyle={tooltipStyle}
+                        />
+                        <Legend
+                          verticalAlign="top"
+                          align="right"
+                          iconType="circle"
+                          iconSize={8}
+                          wrapperStyle={{ paddingBottom: '8px', fontSize: '12px' }}
+                          formatter={(val) => (val === 'af' ? 'AF' : 'CF')}
+                        />
+                        <Line type="monotone" dataKey="af" name="af" stroke="#0F4C81" strokeWidth={2.5} dot={{ r: 3, fill: '#0F4C81', strokeWidth: 0 }} />
+                        <Line type="monotone" dataKey="cf" name="cf" stroke="#14B8A6" strokeWidth={2.5} dot={{ r: 3, fill: '#14B8A6', strokeWidth: 0 }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                  <span>CF <span className="font-medium text-slate-900">77,3%</span> &middot; target &gt;70%</span>
+                  <span>AF <span className="font-medium text-slate-900">98,1%</span> &middot; target &gt;95%</span>
+                </div>
+              </section>
 
-          {/* SECTION 4: INSIGHTS & REKOMENDASI STRATEGIS MANAJEMEN */}
-          <Card className="bg-white border-slate-200 shadow-sm rounded-md p-5">
-            <h3 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
-              <CheckCircle2 size={18} className="text-emerald-600" />
-              Kesimpulan Evaluasi Kinerja untuk Manajemen
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="p-3.5 bg-slate-50 rounded border border-slate-200">
-                <span className="font-bold text-slate-800 block text-xs mb-1">
-                  1. Keberlanjutan Suplai Energi
-                </span>
-                <p className="text-slate-600 leading-relaxed">
-                  Produksi kumulatif berjalan <strong>558.5 MWh</strong>, surplus 7.4% terhadap target PPA. Pasokan air sungai di hulu terpantau stabil pada rata-rata 2.45 m³/s.
-                </p>
-              </div>
-              <div className="p-3.5 bg-slate-50 rounded border border-slate-200">
-                <span className="font-bold text-slate-800 block text-xs mb-1">
-                  2. Integritas Aset & Keandalan Mesin
-                </span>
-                <p className="text-slate-600 leading-relaxed">
-                  Availability Factor mencapai <strong>98.1%</strong> (di atas target 95%). Waktu henti mesin hanya 12 jam untuk perawatan terencana tanpa adanya trip tak terduga.
-                </p>
-              </div>
-              <div className="p-3.5 bg-slate-50 rounded border border-slate-200">
-                <span className="font-bold text-slate-800 block text-xs mb-1">
-                  3. Rekomendasi Tindak Lanjut
-                </span>
-                <p className="text-slate-600 leading-relaxed">
-                  Dukung pelaksanaan pemeliharaan preventif seal MIV pada jadwal terdekat untuk mempertahankan efisiensi hidrolik sebelum memasuki puncak musim hujan.
-                </p>
-              </div>
+              {/* Log gangguan (Dipindah ke bawah Tren CF dan AF) */}
+              <section aria-label="Log gangguan" className={card}>
+                <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className={cardTitle}>Log gangguan</h3>
+                    <p className={cardSub}>Kejadian terbaru dan penanganannya</p>
+                  </div>
+                  <Badge>{executiveMetrics.incidentsSummary.activeProcessCount} aktif</Badge>
+                </div>
+                <ul className="px-5 pb-2">
+                  {incidents.map((incident, idx) => (
+                    <li key={incident.id} className={`py-3 ${idx > 0 ? 'border-t border-slate-100' : ''}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-[13px] font-medium text-slate-900">{incident.equipment}</div>
+                          <div className="text-xs text-slate-500">{incident.unit} &middot; {incident.code}</div>
+                        </div>
+                        {incident.status === 'PROCESS' ? (
+                          <Badge>Dalam proses</Badge>
+                        ) : (
+                          <Badge>Selesai</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">{incident.issue}</p>
+                      <div className="text-xs text-slate-500 mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <div>Dampak: {incident.impact}</div>
+                        <div className="tabular-nums">{incident.occurredAt}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mx-5 mb-4 mt-1 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-700 border border-slate-200 flex items-start gap-2">
+                  <Info size={13} className="shrink-0 mt-0.5 text-slate-500" />
+                  <span>Tidak ada potensi trip total maupun sanksi deviasi suplai dari PLN.</span>
+                </div>
+              </section>
             </div>
-          </Card>
 
+            {/* Kolom samping (sempit) */}
+            <aside className="xl:col-span-4 space-y-5">
+              {/* Status unit */}
+              <section aria-label="Status unit" className={`${card} p-5`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className={cardTitle}>Status unit pembangkit</h3>
+                    <p className={cardSub}>Kapasitas terpasang 2 &times; 500 kW</p>
+                  </div>
+                  <Badge>Sinkron</Badge>
+                </div>
+                <div className="mt-4 space-y-3.5">
+                  {[
+                    { name: 'Unit 1', kw: executiveMetrics.plantStatus.unit1PowerKw, note: 'Bearing 76 °C, dipantau' },
+                    { name: 'Unit 2', kw: executiveMetrics.plantStatus.unit2PowerKw, note: 'Kondisi normal' }
+                  ].map((u) => (
+                    <div key={u.name}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-slate-800">{u.name}</span>
+                        <span className="tabular-nums text-slate-600">{u.kw} / 500 kW</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100 mt-1.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#0F4C81]"
+                          style={{ width: `${(u.kw / 500) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1.5">
+                        {u.note}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* SCADA */}
+              <section aria-label="Telemetri SCADA" className={`${card} overflow-hidden`}>
+                <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className={cardTitle}>Telemetri SCADA per unit</h3>
+                    <p className={cardSub}>Sinkron grid 20 kV</p>
+                  </div>
+                  <Badge>Terhubung</Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="text-[11px] text-slate-500 bg-slate-50 border-y border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-4 font-medium">Parameter</th>
+                        <th className="py-2.5 px-3 font-medium text-right">Unit 1</th>
+                        <th className="py-2.5 px-3 font-medium text-right">Unit 2</th>
+                        <th className="py-2.5 px-4 font-medium">Batas normal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 tabular-nums">
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Status operasi</td>
+                        <td className="py-2 px-3 text-right"><Badge>Running</Badge></td>
+                        <td className="py-2 px-3 text-right"><Badge>Running</Badge></td>
+                        <td className="py-2 px-4 text-slate-500">Sinkron grid</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Daya aktif (P)</td>
+                        <td className="py-2 px-3 text-right font-medium text-slate-900">475 kW</td>
+                        <td className="py-2 px-3 text-right font-medium text-slate-900">460 kW</td>
+                        <td className="py-2 px-4 text-slate-500">Maks. 500 kW/unit</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Tegangan (V)</td>
+                        <td className="py-2 px-3 text-right text-slate-900">398 V</td>
+                        <td className="py-2 px-3 text-right text-slate-900">400 V</td>
+                        <td className="py-2 px-4 text-slate-500">400 V &plusmn;5%</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Frekuensi (f)</td>
+                        <td className="py-2 px-3 text-right text-slate-900">50,02 Hz</td>
+                        <td className="py-2 px-3 text-right text-slate-900">50,02 Hz</td>
+                        <td className="py-2 px-4 text-slate-500">50,00 &plusmn;0,2 Hz</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Debit air (Q)</td>
+                        <td className="py-2 px-3 text-right text-slate-900">2,51 m³/s</td>
+                        <td className="py-2 px-3 text-right text-slate-900">2,48 m³/s</td>
+                        <td className="py-2 px-4 text-slate-500">Desain 2,65 m³/s</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/70">
+                        <td className="py-2 px-4 text-slate-700">Suhu bearing</td>
+                        <td className="py-2 px-3 text-right">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="font-medium text-slate-900">76 °C</span>
+                            <Badge>Waspada</Badge>
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="text-slate-900">68 °C</span>
+                            <Badge>Normal</Badge>
+                          </span>
+                        </td>
+                        <td className="py-2 px-4 text-slate-500">Alarm trip &gt;85 °C</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Ringkasan keputusan (Dipindah ke bawah Telemetri SCADA) */}
+              <section aria-label="Ringkasan evaluasi" className={card}>
+                <div className="px-5 pt-4 pb-2 border-b border-slate-100">
+                  <h3 className={cardTitle}>Ringkasan evaluasi dan keputusan operasional</h3>
+                  <p className={cardSub}>Tinjauan performa dan arahan manajemen</p>
+                </div>
+                <div className="divide-y divide-slate-100 px-5 pb-2">
+                  <div className="py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-[13px] font-medium text-slate-900">Suplai energi dan kontrak PLN</h4>
+                      <Badge>Terpenuhi</Badge>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
+                      Realisasi <span className="font-medium text-slate-900">558,5 MWh</span>, 7,4% di atas target PPA. Debit hulu stabil rata-rata 2,45 m³/s.
+                    </p>
+                  </div>
+                  <div className="py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-[13px] font-medium text-slate-900">Keandalan mesin dan aset</h4>
+                      <Badge>Risiko rendah</Badge>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
+                      AF <span className="font-medium text-slate-900">98,1%</span> (target &gt;95%). Downtime 12 jam hanya untuk pemeliharaan terencana, tanpa trip mendadak.
+                    </p>
+                  </div>
+                  <div className="py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-[13px] font-medium text-slate-900">Tindak lanjut manajemen</h4>
+                      <Badge>Perlu persetujuan</Badge>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
+                      Dukung jadwal preventive maintenance seal MIV pada pekan ke-2 Oktober, sebelum debit puncak musim hujan.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
       </main>
     </div>
