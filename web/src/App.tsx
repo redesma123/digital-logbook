@@ -6,6 +6,7 @@ import HistoryOperasi from './pages/HistoryOperasi';
 import TrendParameter from './pages/TrendParameter';
 import Gangguan from './pages/Gangguan';
 import Maintenance from './pages/Maintenance';
+import ProduksiEnergi from './pages/ProduksiEnergi';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/trend-parameter" element={<TrendParameter />} />
         <Route path="/gangguan" element={<Gangguan />} />
         <Route path="/maintenance" element={<Maintenance />} />
+        <Route path="/produksi-energi" element={<ProduksiEnergi />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
