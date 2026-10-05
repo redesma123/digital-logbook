@@ -28,6 +28,8 @@ class LogbookRepository {
       flowRate: 2.50,
       waterLevel: 1.80,
       bearingTemp: 52,
+      hourMeterStart: 12442.0,
+      hourMeterEnd: 12450.0,
       notes: 'Kondisi normal.',
     ),
     const LogbookModel(
@@ -45,6 +47,8 @@ class LogbookRepository {
       flowRate: 2.48,
       waterLevel: 1.78,
       bearingTemp: 53,
+      hourMeterStart: 12434.0,
+      hourMeterEnd: 12442.0,
       notes: 'Operasi berjalan lancar.',
     ),
     const LogbookModel(
@@ -205,6 +209,15 @@ class LogbookRepository {
   LogbookRepository(this._dio);
 
   List<LogbookModel> get initialEntries => List.unmodifiable(_mockEntries);
+
+  /// Stand HM akhir shift terakhir → jadi HM awal shift berikutnya.
+  /// ponytail: lokal dulu; nanti ganti ke GET /logbook/latest-counter saat integrasi API.
+  double? get latestHourMeterEnd {
+    for (final e in _mockEntries) {
+      if (e.hourMeterEnd != null) return e.hourMeterEnd;
+    }
+    return null;
+  }
 
   Future<List<LogbookModel>> getHistory() async {
     try {

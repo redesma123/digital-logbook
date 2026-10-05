@@ -23,6 +23,14 @@ void main() {
     expect(find.text('Siang'), findsOneWidget);
     expect(find.text('Malam'), findsOneWidget);
     expect(find.text('Parameter Operasi'), findsOneWidget);
+    expect(find.text('Hour Meter (Operan Shift)'), findsOneWidget);
+    expect(find.text('HM Awal (jam)'), findsOneWidget);
+    expect(find.text('HM Akhir (jam)'), findsOneWidget);
+    expect(find.text('Jam Operasi'), findsOneWidget);
+    expect(find.text('Running'), findsOneWidget);
+    expect(find.text('Standby'), findsOneWidget);
+    expect(find.text('Shutdown'), findsOneWidget);
+    expect(find.text('Trip'), findsOneWidget);
     expect(find.text('Simpan Logbook'), findsOneWidget);
   });
 
@@ -37,6 +45,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Detail Logbook'), findsOneWidget);
+    expect(find.text('Hour Meter (Operan Shift)'), findsOneWidget);
+    expect(find.text('HM Awal'), findsOneWidget);
+    expect(find.text('HM Akhir'), findsOneWidget);
+    expect(find.text('Jam Operasi Shift'), findsOneWidget);
     expect(find.text('Parameter Operasi'), findsOneWidget);
     expect(find.text('Operator'), findsOneWidget);
     expect(find.text('Shift'), findsOneWidget);
@@ -61,5 +73,11 @@ void main() {
     expect(find.text('Daya (kW)'), findsOneWidget);
     expect(find.text('Status'), findsOneWidget);
     expect(find.text('Input Logbook'), findsOneWidget);
+
+    // Bottom Navigation Bar tabs (Screen 6)
+    expect(find.text('Beranda'), findsOneWidget);
+    expect(find.text('Logbook'), findsOneWidget);
+    expect(find.text('Notifikasi'), findsOneWidget);
+    expect(find.text('Profil'), findsOneWidget);
   });
 }

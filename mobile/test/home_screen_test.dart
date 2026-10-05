@@ -50,4 +50,25 @@ void main() {
     expect(find.text('Notifikasi'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });
+
+  testWidgets('HomeScreen opens NotificationBottomSheet when Notifikasi tab is tapped', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Notifikasi'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Notifikasi Operasional'), findsOneWidget);
+    expect(find.text('ALARM: Generator Unit 1 Trip'), findsOneWidget);
+    expect(find.text('Tandai dibaca'), findsOneWidget);
+
+    await tester.tap(find.text('Tandai dibaca'), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 300));
+  });
 }

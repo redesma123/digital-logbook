@@ -99,4 +99,31 @@ void main() {
     expect(find.text('Notifikasi'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });
+
+  testWidgets('MaintenanceListScreen opens detail modal when a maintenance card is tapped', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: MaintenanceListScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap on the first maintenance card
+    await tester.tap(find.text('Inspeksi Rutin'));
+    await tester.pumpAndSettle();
+
+    // Verify detail modal opened with detailed information
+    expect(find.text('Peralatan'), findsOneWidget);
+    expect(find.text('Teknisi Penanggung Jawab'), findsOneWidget);
+    expect(find.text('Deskripsi Pekerjaan'), findsOneWidget);
+    expect(find.text('Tutup'), findsOneWidget);
+
+    // Tap Close
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Teknisi Penanggung Jawab'), findsNothing);
+  });
 }

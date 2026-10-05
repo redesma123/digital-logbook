@@ -21,7 +21,32 @@ class DetailLogbookScreen extends ConsumerWidget {
       );
     }
 
-    final isRunning = entry.unitStatus.toLowerCase() == 'running';
+    Color statusBadgeBg;
+    Color statusBadgeDot;
+    Color statusBadgeText;
+    switch (entry.unitStatus.toLowerCase()) {
+      case 'running':
+        statusBadgeBg = AppColors.statusRunningBg;
+        statusBadgeDot = AppColors.statusRunning;
+        statusBadgeText = AppColors.statusRunningText;
+        break;
+      case 'standby':
+        statusBadgeBg = AppColors.statusStandbyBg;
+        statusBadgeDot = AppColors.statusStandby;
+        statusBadgeText = AppColors.statusStandbyText;
+        break;
+      case 'trip':
+        statusBadgeBg = AppColors.statusTripBg;
+        statusBadgeDot = AppColors.statusTrip;
+        statusBadgeText = AppColors.statusTripText;
+        break;
+      case 'shutdown':
+      default:
+        statusBadgeBg = AppColors.statusOfflineBg;
+        statusBadgeDot = AppColors.statusOffline;
+        statusBadgeText = AppColors.statusOfflineText;
+        break;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.surfacePage,
@@ -74,7 +99,7 @@ class DetailLogbookScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isRunning ? AppColors.statusRunningBg : AppColors.statusStandbyBg,
+                          color: statusBadgeBg,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -84,7 +109,7 @@ class DetailLogbookScreen extends ConsumerWidget {
                               width: 6,
                               height: 6,
                               decoration: BoxDecoration(
-                                color: isRunning ? AppColors.statusRunning : AppColors.statusStandby,
+                                color: statusBadgeDot,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -94,7 +119,7 @@ class DetailLogbookScreen extends ConsumerWidget {
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isRunning ? AppColors.statusRunningText : AppColors.statusStandbyText,
+                                color: statusBadgeText,
                               ),
                             ),
                           ],
@@ -146,7 +171,48 @@ class DetailLogbookScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // 2. Parameter Operasi Detail Card
+            // 2. Hour Meter (Operan Shift)
+            if (entry.hourMeterStart != null || entry.hourMeterEnd != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hour Meter (Operan Shift)',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(
+                      'HM Awal',
+                      entry.hourMeterStart != null ? '${entry.hourMeterStart!.toStringAsFixed(1)} jam' : '-',
+                    ),
+                    _buildDetailRow(
+                      'HM Akhir',
+                      entry.hourMeterEnd != null ? '${entry.hourMeterEnd!.toStringAsFixed(1)} jam' : '-',
+                    ),
+                    _buildDetailRow(
+                      'Jam Operasi Shift',
+                      entry.runningHours != null ? '${entry.runningHours!.toStringAsFixed(1)} jam' : '-',
+                      isLast: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 3. Parameter Operasi Detail Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
