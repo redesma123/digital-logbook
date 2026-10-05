@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../data/logbook_repository.dart';
 import '../domain/logbook_model.dart';
 import 'controllers/logbook_controller.dart';
 
@@ -30,9 +31,29 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
   final _waterLevelController = TextEditingController(text: '1.80');
   final _bearingTempController = TextEditingController(text: '52');
   final _notesController = TextEditingController(text: 'Kondisi normal.');
+  late final TextEditingController _hmStartController;
+  final _hmEndController = TextEditingController();
 
   final List<String> _attachedPhotos = [];
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Operan shift: HM awal = HM akhir shift sebelumnya.
+    final lastHm = ref.read(logbookRepositoryProvider).latestHourMeterEnd;
+    _hmStartController = TextEditingController(text: lastHm?.toStringAsFixed(1) ?? '');
+    _hmStartController.addListener(_onHmChanged);
+    _hmEndController.addListener(_onHmChanged);
+  }
+
+  void _onHmChanged() => setState(() {});
+
+  double? get _runningHours {
+    final start = double.tryParse(_hmStartController.text);
+    final end = double.tryParse(_hmEndController.text);
+    return (start != null && end != null) ? end - start : null;
+  }
 
   @override
   void dispose() {
@@ -45,6 +66,8 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
     _waterLevelController.dispose();
     _bearingTempController.dispose();
     _notesController.dispose();
+    _hmStartController.dispose();
+    _hmEndController.dispose();
     super.dispose();
   }
 
@@ -107,6 +130,8 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
       flowRate: double.tryParse(_flowRateController.text) ?? 2.50,
       waterLevel: double.tryParse(_waterLevelController.text) ?? 1.80,
       bearingTemp: double.tryParse(_bearingTempController.text) ?? 52,
+      hourMeterStart: double.tryParse(_hmStartController.text),
+      hourMeterEnd: double.tryParse(_hmEndController.text),
       notes: _notesController.text.trim(),
       photos: _attachedPhotos,
     );
@@ -288,7 +313,55 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 4. Status Unit Selector (Running, Standby, Shutdown)
+              // 4. Hour Meter (Operan Shift)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hour Meter (Operan Shift)',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildParamField('HM Awal (jam)', _hmStartController, validator: _validateHmStart),
+                    _buildParamField('HM Akhir (jam)', _hmEndController, validator: _validateHmEnd),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Jam Operasi',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.neutral700,
+                          ),
+                        ),
+                        Text(
+                          _runningHours == null ? '-' : '${_runningHours!.toStringAsFixed(1)} jam',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 5. Status Unit Selector (Running, Standby, Shutdown, Trip)
               Text(
                 'Status Unit',
                 style: GoogleFonts.inter(
@@ -304,7 +377,9 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                   const SizedBox(width: 8),
                   _buildStatusButton('Standby', const Color(0xFFEAB308)),
                   const SizedBox(width: 8),
-                  _buildStatusButton('Shutdown', const Color(0xFFEF4444)),
+                  _buildStatusButton('Shutdown', AppColors.statusOffline),
+                  const SizedBox(width: 8),
+                  _buildStatusButton('Trip', AppColors.statusTrip),
                 ],
               ),
               const SizedBox(height: 20),
@@ -428,38 +503,66 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
     );
   }
 
-  Widget _buildParamField(String label, TextEditingController controller, {bool isLast = false}) {
+  // Aturan validasi HM sesuai docs/SCHEMA.md: start ≥ 0, end ≥ start, running 0–8 jam/shift.
+  String? _validateHmStart(String? v) {
+    final start = double.tryParse(v ?? '');
+    if (start == null) return 'Wajib diisi';
+    if (start < 0) return 'Min. 0';
+    return null;
+  }
+
+  String? _validateHmEnd(String? v) {
+    final end = double.tryParse(v ?? '');
+    if (end == null) return 'Wajib diisi';
+    final start = double.tryParse(_hmStartController.text);
+    if (start != null && end < start) return '< HM awal';
+    final running = _runningHours;
+    if (running != null && running > 8) return 'Maks. 8 jam';
+    return null;
+  }
+
+  Widget _buildParamField(
+    String label,
+    TextEditingController controller, {
+    bool isLast = false,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             flex: 5,
-            child: Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.neutral700,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.neutral700,
+                ),
               ),
             ),
           ),
           Expanded(
             flex: 3,
-            child: SizedBox(
-              height: 40,
-              child: TextFormField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.right,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.neutral900,
-                ),
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: TextFormField(
+              controller: controller,
+              validator: validator,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.right,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.neutral900,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                errorStyle: GoogleFonts.inter(fontSize: 10),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
@@ -474,7 +577,6 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                   ),
-                ),
               ),
             ),
           ),

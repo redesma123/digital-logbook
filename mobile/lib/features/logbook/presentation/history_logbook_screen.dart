@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
 import '../domain/logbook_model.dart';
 import 'controllers/logbook_controller.dart';
@@ -17,9 +18,9 @@ class HistoryLogbookScreen extends ConsumerWidget {
         return AppColors.statusRunning;
       case 'standby':
         return AppColors.statusStandby;
-      case 'shutdown':
       case 'trip':
         return AppColors.statusTrip;
+      case 'shutdown':
       default:
         return AppColors.statusOffline;
     }
@@ -180,10 +181,14 @@ class HistoryLogbookScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: HomeBottomNav(
-        currentIndex: 1, // Logbook tab active
+        currentIndex: 1, // Menu tab active
         onTap: (idx) {
           if (idx == 0) {
             context.go('/home');
+          } else if (idx == 1) {
+            MenuHubBottomSheet.show(context);
+          } else if (idx == 2) {
+            context.push('/profile');
           }
         },
       ),

@@ -91,8 +91,35 @@ void main() {
 
     // Bottom Navigation Bar
     expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('Gangguan'), findsOneWidget);
-    expect(find.text('Notifikasi'), findsOneWidget);
+    expect(find.text('Menu'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
+  });
+
+  testWidgets('IncidentListScreen opens detail modal when an incident card is tapped', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: IncidentListScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap on the first incident card
+    await tester.tap(find.text('Generator Trip'));
+    await tester.pumpAndSettle();
+
+    // Verify detail modal opened with detailed information
+    expect(find.text('Peralatan Terkait'), findsOneWidget);
+    expect(find.text('Dilaporkan Oleh'), findsOneWidget);
+    expect(find.text('Deskripsi Gangguan'), findsOneWidget);
+    expect(find.text('Tindakan Operator'), findsOneWidget);
+    expect(find.text('Tutup'), findsOneWidget);
+
+    // Tap Close
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Peralatan Terkait'), findsNothing);
   });
 }

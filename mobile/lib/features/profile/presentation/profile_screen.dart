@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
 
@@ -302,16 +303,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (index == 0) {
       context.go('/home');
     } else if (index == 1) {
-      context.push('/history-logbook');
+      MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada notifikasi baru'),
-          duration: Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (index == 3) {
       // Current Screen: Profil
     }
   }
@@ -503,7 +496,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
       bottomNavigationBar: HomeBottomNav(
-        currentIndex: 3, // Profil is active
+        currentIndex: 2, // Profil is active
         onTap: _onBottomNavTap,
       ),
     );

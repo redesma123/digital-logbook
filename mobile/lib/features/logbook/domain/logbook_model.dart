@@ -14,6 +14,8 @@ class LogbookModel {
   final double flowRate; // m3/s
   final double waterLevel; // m
   final double bearingTemp; // °C
+  final double? hourMeterStart; // jam, stand HM awal shift (dari shift sebelumnya)
+  final double? hourMeterEnd; // jam, stand HM akhir shift (dibaca dari panel)
   final String notes;
   final List<String> photos;
 
@@ -33,9 +35,15 @@ class LogbookModel {
     required this.flowRate,
     required this.waterLevel,
     required this.bearingTemp,
+    this.hourMeterStart,
+    this.hourMeterEnd,
     this.notes = 'Kondisi normal.',
     this.photos = const [],
   });
+
+  /// running_hours = hour_meter_end - hour_meter_start (SCHEMA.md). Null bila salah satu kosong.
+  double? get runningHours =>
+      (hourMeterStart != null && hourMeterEnd != null) ? hourMeterEnd! - hourMeterStart! : null;
 
   factory LogbookModel.fromJson(Map<String, dynamic> json) {
     return LogbookModel(
@@ -54,6 +62,8 @@ class LogbookModel {
       flowRate: (json['flow_rate'] as num?)?.toDouble() ?? 2.50,
       waterLevel: (json['water_level'] as num?)?.toDouble() ?? 1.80,
       bearingTemp: (json['bearing_temp'] as num?)?.toDouble() ?? 52.0,
+      hourMeterStart: (json['hour_meter_start'] as num?)?.toDouble(),
+      hourMeterEnd: (json['hour_meter_end'] as num?)?.toDouble(),
       notes: json['notes'] as String? ?? 'Kondisi normal.',
       photos: (json['photos'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     );
@@ -76,6 +86,9 @@ class LogbookModel {
       'flow_rate': flowRate,
       'water_level': waterLevel,
       'bearing_temp': bearingTemp,
+      'hour_meter_start': hourMeterStart,
+      'hour_meter_end': hourMeterEnd,
+      'running_hours': runningHours,
       'notes': notes,
       'photos': photos,
     };
@@ -97,6 +110,8 @@ class LogbookModel {
     double? flowRate,
     double? waterLevel,
     double? bearingTemp,
+    double? hourMeterStart,
+    double? hourMeterEnd,
     String? notes,
     List<String>? photos,
   }) {
@@ -116,6 +131,8 @@ class LogbookModel {
       flowRate: flowRate ?? this.flowRate,
       waterLevel: waterLevel ?? this.waterLevel,
       bearingTemp: bearingTemp ?? this.bearingTemp,
+      hourMeterStart: hourMeterStart ?? this.hourMeterStart,
+      hourMeterEnd: hourMeterEnd ?? this.hourMeterEnd,
       notes: notes ?? this.notes,
       photos: photos ?? this.photos,
     );
