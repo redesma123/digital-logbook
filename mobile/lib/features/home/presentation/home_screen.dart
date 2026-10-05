@@ -40,6 +40,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context.push('/incidents');
     } else if (route == '/maintenance') {
       context.push('/maintenance');
+    } else if (route == '/laporan') {
+      context.push('/unit-dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -77,10 +79,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Unit Status Card (Live Running Status)
-              const UnitStatusCard(
-                unitName: 'PLTMH Sampean Baru',
-                status: 'RUNNING',
-                runningSince: '12 Apr 2025 06:30',
+              InkWell(
+                onTap: () => context.push('/unit-dashboard'),
+                borderRadius: BorderRadius.circular(12),
+                child: const UnitStatusCard(
+                  unitName: 'PLTMH Sampean Baru',
+                  status: 'RUNNING',
+                  runningSince: '12 Apr 2025 06:30',
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -100,9 +106,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 20),
 
               // 4. Daily Production Summary Card (4.250 kWh, +12% dibanding kemarin)
-              const ProductionSummaryCard(
-                productionKwh: 4250.0,
-                percentageChange: 12.0,
+              InkWell(
+                onTap: () => context.push('/unit-dashboard'),
+                borderRadius: BorderRadius.circular(12),
+                child: const ProductionSummaryCard(
+                  productionKwh: 4250.0,
+                  percentageChange: 12.0,
+                ),
               ),
               const SizedBox(height: 24),
             ],
