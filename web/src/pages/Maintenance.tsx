@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
-import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import {
   Wrench,
@@ -439,38 +438,38 @@ const Maintenance = () => {
     document.body.removeChild(link);
   };
 
-  // Badge Status sesuai DESIGN_SYSTEM.md 1.4:
-  // PLAN: Abu-abu (status-offline)
-  // PROCESS: Kuning (status-standby)
-  // COMPLETE: Hijau (status-running)
+  // Badge Status sesuai gaya Management Dashboard:
+  // Netral / monokrom, tanpa warna mencolok dan tanpa titik bulat
   const getStatusBadge = (status: MaintenanceStatus) => {
     switch (status) {
       case 'PLAN':
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1.5"></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
             PLAN
           </span>
         );
       case 'PROCESS':
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
             PROCESS
           </span>
         );
       case 'COMPLETE':
         return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 size={12} className="mr-1 text-emerald-600" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
             COMPLETE
           </span>
         );
     }
   };
 
+  const card = 'bg-white rounded-xl border border-slate-200/80 shadow-[0_2px_8px_rgba(15,23,42,0.05)]';
+
   return (
-    <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans">
+    <div
+      className="flex h-screen bg-[#EEF2F7] text-slate-800 text-[13px]"
+      style={{ fontFamily: '"IBM Plex Sans", Arial, Helvetica, sans-serif' }}
+    >
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -479,270 +478,258 @@ const Maintenance = () => {
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-[1400px] mx-auto space-y-5">
             {/* Top Bar / Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Rencana & Rekaman Pemeliharaan (Maintenance)</h2>
-                </div>
-                <p className="text-sm font-medium text-slate-500 mt-1">
+                <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Rencana & Rekaman Pemeliharaan (Maintenance)</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
                   Pengelolaan jadwal pemeliharaan unit, koordinasi teknisi pelaksana, dan audit alur kerja (PLAN &rarr; PROCESS &rarr; COMPLETE).
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center flex-wrap gap-2.5">
-                {/* Ekspor CSV */}
+              <div className="flex items-center flex-wrap gap-2">
                 <Button
                   onClick={handleExportCSV}
-                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs h-9 px-3 shadow-sm rounded flex items-center"
+                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center"
                 >
-                  <FileSpreadsheet size={15} className="mr-1.5 text-emerald-600" />
+                  <FileSpreadsheet size={14} className="mr-1.5 text-slate-600" />
                   Ekspor CSV
                 </Button>
 
-                {/* Buat Rencana Maintenance Baru (F-23) */}
                 <Button
                   onClick={() => setIsCreateOpen(true)}
-                  className="bg-[#0F4C81] hover:bg-[#0c3d66] text-white font-semibold text-xs h-9 px-3.5 shadow-sm rounded flex items-center"
+                  className="bg-[#0F4C81] hover:bg-[#0c3d66] text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center"
                 >
-                  <Plus size={15} className="mr-1.5" />
+                  <Plus size={14} className="mr-1.5" />
                   Buat Rencana Maintenance
                 </Button>
               </div>
             </div>
 
-            {/* KPI Stat Cards (Design System 1.4 & Harmonized with Gangguan) */}
+            {/* KPI Cards (sesuai gaya Management Dashboard) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest">Total Jadwal Maintenance</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">{totalCount}</p>
-                    <span className="text-[0.7rem] text-slate-400 font-medium">Rekapitulasi seluruh unit</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-                    <Wrench size={20} />
-                  </div>
+              <div className={`${card} p-4`}>
+                <span className="text-xs font-medium text-slate-500">Total Jadwal</span>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{totalCount}</span>
+                  <span className="text-sm text-slate-500">jadwal</span>
                 </div>
-              </Card>
+                <div className="text-xs text-slate-500 mt-1">Rekapitulasi seluruh unit</div>
+              </div>
 
-              <Card className="bg-white border-slate-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-slate-50/80">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[0.65rem] font-bold text-slate-600 uppercase tracking-widest">Status: PLAN (Terencana)</p>
-                    <p className="text-2xl font-black text-slate-800 mt-1">{planCount}</p>
-                    <span className="text-[0.7rem] text-slate-500 font-medium">Jadwal menunggu pelaksanaan</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center">
-                    <Calendar size={20} />
-                  </div>
+              <div className={`${card} p-4`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-slate-500">Rencana</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
+                    PLAN
+                  </span>
                 </div>
-              </Card>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{planCount}</span>
+                  <span className="text-sm text-slate-500">item</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">Menunggu pelaksanaan</div>
+              </div>
 
-              <Card className="bg-white border-amber-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-amber-50/40">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[0.65rem] font-bold text-amber-600 uppercase tracking-widest">Status: PROCESS (Dikerjakan)</p>
-                    <p className="text-2xl font-black text-amber-700 mt-1">{processCount}</p>
-                    <span className="text-[0.7rem] text-amber-600/80 font-medium">Pekerjaan lapangan sedang aktif</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                    <RefreshCw size={20} />
-                  </div>
+              <div className={`${card} p-4`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-slate-500">Dalam Proses</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
+                    PROCESS
+                  </span>
                 </div>
-              </Card>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{processCount}</span>
+                  <span className="text-sm text-slate-500">aktif</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">Pekerjaan sedang berlangsung</div>
+              </div>
 
-              <Card className="bg-white border-emerald-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-emerald-50/40">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[0.65rem] font-bold text-emerald-600 uppercase tracking-widest">Status: COMPLETE (Selesai)</p>
-                    <p className="text-2xl font-black text-emerald-700 mt-1">{completeCount}</p>
-                    <span className="text-[0.7rem] text-emerald-600/80 font-medium">Telah diverifikasi supervisor</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 size={20} />
-                  </div>
+              <div className={`${card} p-4`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-slate-500">Selesai</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
+                    COMPLETE
+                  </span>
                 </div>
-              </Card>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{completeCount}</span>
+                  <span className="text-sm text-slate-500">selesai</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">Telah diverifikasi supervisor</div>
+              </div>
             </div>
 
-            {/* Filter Section (SRS F-27: Status & Rentang Tanggal) */}
-            <Card className="bg-slate-50 border-slate-200 shadow-sm rounded-sm">
-              <CardContent className="p-4">
-                <div className="flex flex-wrap gap-4 items-end justify-between">
-                  <div className="flex flex-wrap gap-3 items-center">
-                    {/* Unit Select */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">UNIT:</label>
-                      <select
-                        value={selectedUnit}
-                        onChange={(e) => setSelectedUnit(e.target.value)}
-                        className="h-8 text-xs border border-slate-200 rounded bg-white text-slate-700 font-semibold px-2.5 outline-none focus:ring-1 focus:ring-blue-500"
-                      >
-                        <option value="ALL">Semua Unit</option>
-                        <option value="1">Unit 1</option>
-                        <option value="2">Unit 2</option>
-                      </select>
-                    </div>
-
-                    {/* Status Select */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">STATUS:</label>
-                      <select
-                        value={selectedStatus}
-                        onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="h-8 text-xs border border-slate-200 rounded bg-white text-slate-700 font-semibold px-2.5 outline-none focus:ring-1 focus:ring-blue-500"
-                      >
-                        <option value="ALL">Semua Status</option>
-                        <option value="PLAN">PLAN (Rencana)</option>
-                        <option value="PROCESS">PROCESS (Sedang Dikerjakan)</option>
-                        <option value="COMPLETE">COMPLETE (Selesai)</option>
-                      </select>
-                    </div>
-
-                    {/* Date Range Filter (SRS F-27) */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">DARI:</label>
-                      <input
-                        type="date"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        className="h-8 text-xs border border-slate-200 rounded bg-white text-slate-700 font-medium px-2 outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <label className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase">SAMPAI:</label>
-                      <input
-                        type="date"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        className="h-8 text-xs border border-slate-200 rounded bg-white text-slate-700 font-medium px-2 outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    {/* Search Input */}
-                    <div className="relative">
-                      <Search size={14} className="absolute left-2.5 top-2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Cari peralatan, teknisi, kode..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-8 pl-8 pr-3 text-xs border border-slate-200 rounded bg-white text-slate-700 font-medium placeholder-slate-400 w-52 md:w-60 outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Reset Filter Button */}
-                  {(selectedUnit !== 'ALL' || selectedStatus !== 'ALL' || fromDate !== '' || toDate !== '' || searchQuery !== '') && (
-                    <Button
-                      onClick={() => {
-                        setSelectedUnit('ALL');
-                        setSelectedStatus('ALL');
-                        setFromDate('');
-                        setToDate('');
-                        setSearchQuery('');
-                      }}
-                      className="text-xs h-8 bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 font-semibold px-3"
-                    >
-                      <Filter size={13} className="mr-1.5 text-slate-400" />
-                      Reset Filter
-                    </Button>
-                  )}
+            {/* Filter Section */}
+            <div className={`${card} p-4 flex flex-wrap items-center justify-between gap-3 text-xs`}>
+              <div className="flex flex-wrap gap-3 items-center">
+                {/* Unit Select */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">Unit:</span>
+                  <select
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="h-8 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium px-2.5 outline-none focus:border-slate-400"
+                  >
+                    <option value="ALL">Semua Unit</option>
+                    <option value="1">Unit 1</option>
+                    <option value="2">Unit 2</option>
+                  </select>
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* Status Select */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">Status:</span>
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="h-8 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium px-2.5 outline-none focus:border-slate-400"
+                  >
+                    <option value="ALL">Semua Status</option>
+                    <option value="PLAN">PLAN</option>
+                    <option value="PROCESS">PROCESS</option>
+                    <option value="COMPLETE">COMPLETE</option>
+                  </select>
+                </div>
+
+                {/* Date Range Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">Dari:</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="h-8 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium px-2.5 outline-none focus:border-slate-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">Sampai:</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="h-8 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium px-2.5 outline-none focus:border-slate-400"
+                  />
+                </div>
+
+                {/* Search Input */}
+                <div className="relative">
+                  <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari peralatan, teknisi, kode..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-8 pl-8 pr-3 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium placeholder-slate-400 w-48 md:w-56 outline-none focus:border-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Reset Filter Button */}
+              {(selectedUnit !== 'ALL' || selectedStatus !== 'ALL' || fromDate !== '' || toDate !== '' || searchQuery !== '') && (
+                <Button
+                  onClick={() => {
+                    setSelectedUnit('ALL');
+                    setSelectedStatus('ALL');
+                    setFromDate('');
+                    setToDate('');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs h-8 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 font-medium px-3 rounded-lg shadow-none"
+                >
+                  <Filter size={12} className="mr-1 text-slate-400" />
+                  Reset Filter
+                </Button>
+              )}
+            </div>
 
             {/* Maintenance Records Table */}
-            <Card className="bg-white border-slate-200 shadow-sm rounded-md overflow-hidden">
+            <div className={`${card} overflow-hidden`}>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-[0.65rem] text-slate-600 bg-slate-100/90 font-bold uppercase tracking-wider border-b border-slate-200">
+                <table className="w-full text-xs text-left">
+                  <thead className="text-[11px] text-slate-500 bg-slate-50 font-medium border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-4">No / ID Maintenance</th>
-                      <th className="py-3 px-4">Jadwal Rencana</th>
-                      <th className="py-3 px-4">Unit PLTMH</th>
-                      <th className="py-3 px-4">Peralatan</th>
-                      <th className="py-3 px-4">Jenis Pemeliharaan</th>
-                      <th className="py-3 px-4">Teknisi / Pelaksana</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                      <th className="py-3 px-4 text-center">Aksi</th>
+                      <th className="py-2.5 px-4 font-medium">Kode / ID</th>
+                      <th className="py-2.5 px-3 font-medium">Jadwal Rencana</th>
+                      <th className="py-2.5 px-3 font-medium">Unit</th>
+                      <th className="py-2.5 px-4 font-medium">Peralatan</th>
+                      <th className="py-2.5 px-4 font-medium">Jenis Pemeliharaan</th>
+                      <th className="py-2.5 px-3 font-medium">Teknisi / Pelaksana</th>
+                      <th className="py-2.5 px-3 text-center font-medium">Status</th>
+                      <th className="py-2.5 px-4 text-center font-medium">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-10 text-center text-slate-400 text-sm">
+                        <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
                           Tidak ada data pemeliharaan yang sesuai dengan filter pencarian.
                         </td>
                       </tr>
                     ) : (
                       filteredRecords.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 px-4 font-mono font-bold text-xs text-slate-900">
+                        <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-2.5 px-4 font-mono font-medium text-slate-900">
                             {item.code}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-slate-600 font-medium">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar size={13} className="text-slate-400" />
-                              <span>{item.planned_date}</span>
-                            </div>
+                          <td className="py-2.5 px-3 text-slate-600">
+                            {item.planned_date}
                           </td>
-                          <td className="py-3.5 px-4 text-xs font-semibold text-slate-800">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                          <td className="py-2.5 px-3 font-medium text-slate-800">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
                               {item.unit_name}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-xs font-bold text-slate-900">
+                          <td className="py-2.5 px-4 font-medium text-slate-900">
                             {item.equipment}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-slate-700">
-                            <span className="font-medium text-slate-900">{item.work_type}</span>
+                          <td className="py-2.5 px-4 text-slate-700">
+                            <span>{item.work_type}</span>
                             {item.has_attachment && (
                               <button
                                 type="button"
                                 onClick={() => setPreviewPhoto({ name: item.attachment_name || 'lampiran.jpg', size: item.attachment_size || '1.5 MB' })}
-                                className="ml-2 inline-flex items-center text-[0.65rem] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 hover:bg-blue-100 transition-colors"
+                                className="ml-1.5 inline-flex items-center text-[11px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 hover:bg-slate-200"
                               >
                                 <Camera size={10} className="mr-0.5" /> Foto
                               </button>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-xs text-slate-600">
+                          <td className="py-2.5 px-3 text-slate-600">
                             {item.technician}
                           </td>
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-2.5 px-3 text-center">
                             {getStatusBadge(item.status)}
                           </td>
-                          <td className="py-3.5 px-4 text-center">
-                            <div className="inline-flex items-center gap-1.5">
+                          <td className="py-2.5 px-4 text-center">
+                            <div className="inline-flex items-center gap-1">
                               <Button
                                 onClick={() => {
                                   setDetailRecord(item);
                                   setStatusNote('');
                                 }}
-                                className="text-xs h-7 px-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded shadow-none inline-flex items-center"
+                                className="text-xs h-7 px-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg shadow-none inline-flex items-center"
                               >
-                                <Eye size={13} className="mr-1 text-slate-500" />
-                                Detail & Alur
+                                <Eye size={12} className="mr-1 text-slate-500" />
+                                Detail
                               </Button>
 
                               <Button
                                 onClick={() => openEditModal(item)}
                                 title="Edit Rencana Maintenance"
-                                className="text-xs h-7 w-7 p-0 bg-white border border-slate-300 hover:bg-slate-100 text-slate-600 rounded shadow-none inline-flex items-center justify-center"
+                                className="text-xs h-7 w-7 p-0 bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 rounded-lg shadow-none inline-flex items-center justify-center"
                               >
-                                <Edit size={13} />
+                                <Edit size={12} />
                               </Button>
 
                               {currentRole === 'SUPERVISOR' && (
                                 <Button
                                   onClick={() => handleDeleteRecord(item.id)}
                                   title="Hapus Data (Supervisor)"
-                                  className="text-xs h-7 w-7 p-0 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 rounded shadow-none inline-flex items-center justify-center"
+                                  className="text-xs h-7 w-7 p-0 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 rounded-lg shadow-none inline-flex items-center justify-center"
                                 >
-                                  <Trash2 size={13} />
+                                  <Trash2 size={12} />
                                 </Button>
                               )}
                             </div>
@@ -753,7 +740,7 @@ const Maintenance = () => {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </main>
