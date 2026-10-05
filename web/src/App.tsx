@@ -5,6 +5,7 @@ import UnitCondition from './pages/UnitCondition';
 import HistoryOperasi from './pages/HistoryOperasi';
 import TrendParameter from './pages/TrendParameter';
 import Gangguan from './pages/Gangguan';
+import Maintenance from './pages/Maintenance';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/history-operasi" element={<HistoryOperasi />} />
         <Route path="/trend-parameter" element={<TrendParameter />} />
         <Route path="/gangguan" element={<Gangguan />} />
+        <Route path="/maintenance" element={<Maintenance />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
