@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../../../core/widgets/notification_bottom_sheet.dart';
 import 'widgets/home_header.dart';
 import 'widgets/unit_status_card.dart';
@@ -41,16 +42,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context.push('/incidents');
     } else if (route == '/maintenance') {
       context.push('/maintenance');
+    } else if (route == '/inspeksi') {
+      context.push('/inspeksi');
     } else if (route == '/laporan') {
       context.push('/unit-dashboard');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Membuka menu: $route'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    } else if (route == '/lainnya') {
+      context.push('/lainnya');
     }
   }
 
@@ -119,7 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (index == 1) {
             context.push('/history-logbook');
           } else if (index == 2) {
-            NotificationBottomSheet.show(context);
+            MenuHubBottomSheet.show(context);
           } else if (index == 3) {
             context.push('/profile');
           } else {

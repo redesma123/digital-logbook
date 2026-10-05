@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/notification_bottom_sheet.dart';
+import '../../../core/widgets/menu_hub_bottom_sheet.dart';
+import '../../home/presentation/widgets/home_bottom_nav.dart';
 import '../domain/maintenance_model.dart';
 import 'controllers/maintenance_controller.dart';
 
@@ -26,9 +27,9 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
     if (index == 0) {
       context.go('/home');
     } else if (index == 1) {
-      // Current screen: Daftar Maintenance
+      context.push('/history-logbook');
     } else if (index == 2) {
-      NotificationBottomSheet.show(context);
+      MenuHubBottomSheet.show(context);
     } else if (index == 3) {
       context.push('/profile');
     }
@@ -149,48 +150,9 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: AppColors.neutral200, width: 1),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 1, // Maintenance is active
-          onTap: _onBottomNavTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF0284C7),
-          unselectedItemColor: AppColors.neutral400,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Beranda',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.build_outlined),
-              activeIcon: Icon(Icons.build_rounded),
-              label: 'Maintenance',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_rounded),
-              activeIcon: Icon(Icons.notifications_rounded),
-              label: 'Notifikasi',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profil',
-            ),
-          ],
-        ),
+      bottomNavigationBar: HomeBottomNav(
+        currentIndex: 2, // Menu tab active
+        onTap: _onBottomNavTap,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/input-maintenance'),

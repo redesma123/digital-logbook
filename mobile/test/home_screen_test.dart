@@ -47,11 +47,11 @@ void main() {
 
     // 6. Bottom Navigation
     expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('Notifikasi'), findsOneWidget);
+    expect(find.text('Menu'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });
 
-  testWidgets('HomeScreen opens NotificationBottomSheet when Notifikasi tab is tapped', (WidgetTester tester) async {
+  testWidgets('HomeScreen opens NotificationBottomSheet when top bar notification icon is tapped', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
@@ -61,7 +61,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(find.text('Notifikasi'));
+    // Tap notification bell in header
+    final bellFinder = find.byWidgetPredicate(
+      (w) => w is GestureDetector && w.child is Stack,
+    );
+    expect(bellFinder, findsOneWidget);
+    await tester.tap(bellFinder);
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Notifikasi Operasional'), findsOneWidget);
@@ -70,5 +75,24 @@ void main() {
 
     await tester.tap(find.text('Tandai dibaca'), warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 300));
+  });
+
+  testWidgets('HomeScreen opens MenuHubBottomSheet when Menu tab is tapped', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Menu'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Pusat Menu Operasional'), findsOneWidget);
+    expect(find.text('Daftar Gangguan'), findsOneWidget);
+    expect(find.text('Daftar Maintenance'), findsOneWidget);
+    expect(find.text('Checklist Inspeksi'), findsOneWidget);
   });
 }

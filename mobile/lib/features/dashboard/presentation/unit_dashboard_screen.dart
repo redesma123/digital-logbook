@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/menu_hub_bottom_sheet.dart';
+import '../../home/presentation/widgets/home_bottom_nav.dart';
 
 class UnitDashboardScreen extends ConsumerStatefulWidget {
   const UnitDashboardScreen({super.key});
@@ -30,15 +32,9 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
     if (index == 0) {
       context.go('/home');
     } else if (index == 1) {
-      // Current Screen: Dashboard Unit (Laporan)
+      context.push('/history-logbook');
     } else if (index == 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada notifikasi baru'),
-          duration: Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      MenuHubBottomSheet.show(context);
     } else if (index == 3) {
       context.push('/profile');
     }
@@ -310,48 +306,9 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: AppColors.neutral200, width: 1),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: 1, // Laporan / Dashboard is active
-          onTap: _onBottomNavTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF0284C7),
-          unselectedItemColor: AppColors.neutral400,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Beranda',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.assessment_outlined),
-              activeIcon: Icon(Icons.assessment_rounded),
-              label: 'Laporan',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_rounded),
-              activeIcon: Icon(Icons.notifications_rounded),
-              label: 'Notifikasi',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profil',
-            ),
-          ],
-        ),
+      bottomNavigationBar: HomeBottomNav(
+        currentIndex: 2, // Menu tab active
+        onTap: _onBottomNavTap,
       ),
     );
   }
