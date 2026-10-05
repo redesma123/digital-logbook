@@ -114,10 +114,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         currentIndex: _currentNavIndex,
         onTap: (index) {
           if (index == 1) {
-            context.push('/history-logbook');
-          } else if (index == 2) {
             MenuHubBottomSheet.show(context);
-          } else if (index == 3) {
+          } else if (index == 2) {
             context.push('/profile');
           } else {
             setState(() {

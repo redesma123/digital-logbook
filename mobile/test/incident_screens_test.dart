@@ -91,7 +91,6 @@ void main() {
 
     // Bottom Navigation Bar
     expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('Logbook'), findsOneWidget);
     expect(find.text('Menu'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });

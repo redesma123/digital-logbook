@@ -43,16 +43,11 @@ class HomeBottomNav extends StatelessWidget {
               ),
               _buildFloatingNavItem(
                 index: 1,
-                label: 'Logbook',
-                assetPath: AppAssets.icLogbook,
-              ),
-              _buildFloatingNavItem(
-                index: 2,
                 label: 'Menu',
                 iconData: Icons.grid_view_rounded,
               ),
               _buildFloatingNavItem(
-                index: 3,
+                index: 2,
                 label: 'Profil',
                 assetPath: AppAssets.icProfile,
               ),

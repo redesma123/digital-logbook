@@ -303,10 +303,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (index == 0) {
       context.go('/home');
     } else if (index == 1) {
-      context.push('/history-logbook');
-    } else if (index == 2) {
       MenuHubBottomSheet.show(context);
-    } else if (index == 3) {
+    } else if (index == 2) {
       // Current Screen: Profil
     }
   }
@@ -498,7 +496,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
       bottomNavigationBar: HomeBottomNav(
-        currentIndex: 3, // Profil is active
+        currentIndex: 2, // Profil is active
         onTap: _onBottomNavTap,
       ),
     );

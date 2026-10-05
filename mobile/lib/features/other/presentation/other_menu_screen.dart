@@ -12,10 +12,8 @@ class OtherMenuScreen extends StatelessWidget {
     if (index == 0) {
       context.go('/home');
     } else if (index == 1) {
-      context.push('/history-logbook');
-    } else if (index == 2) {
       MenuHubBottomSheet.show(context);
-    } else if (index == 3) {
+    } else if (index == 2) {
       context.push('/profile');
     }
   }
@@ -277,7 +275,7 @@ class OtherMenuScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: HomeBottomNav(
-        currentIndex: 2, // Menu tab active
+        currentIndex: 1, // Menu tab active
         onTap: (idx) => _onBottomNavTap(context, idx),
       ),
     );

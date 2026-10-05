@@ -181,13 +181,13 @@ class HistoryLogbookScreen extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: HomeBottomNav(
-        currentIndex: 1, // Logbook tab active
+        currentIndex: 1, // Menu tab active
         onTap: (idx) {
           if (idx == 0) {
             context.go('/home');
-          } else if (idx == 2) {
+          } else if (idx == 1) {
             MenuHubBottomSheet.show(context);
-          } else if (idx == 3) {
+          } else if (idx == 2) {
             context.push('/profile');
           }
         },
