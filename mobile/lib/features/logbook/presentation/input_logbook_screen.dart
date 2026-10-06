@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/photo_attachment_section.dart';
 import '../data/logbook_repository.dart';
 import '../domain/logbook_model.dart';
 import 'controllers/logbook_controller.dart';
@@ -95,19 +96,6 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
         _selectedDate = picked;
       });
     }
-  }
-
-  void _addPhotoPlaceholder() {
-    setState(() {
-      _attachedPhotos.add('Foto ${_attachedPhotos.length + 1}');
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Foto dokumentasi ditambahkan'),
-        duration: Duration(milliseconds: 900),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   Future<void> _submitLogbook() async {
@@ -410,60 +398,20 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               const SizedBox(height: 20),
 
               // 6. Foto Dokumentasi
-              Text(
-                'Foto',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.neutral700,
-                ),
+              PhotoAttachmentSection(
+                label: 'Foto',
+                photos: _attachedPhotos,
+                onPhotoAdded: (path) {
+                  setState(() {
+                    _attachedPhotos.add(path);
+                  });
+                },
+                onPhotoRemoved: (path) {
+                  setState(() {
+                    _attachedPhotos.remove(path);
+                  });
+                },
               ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _addPhotoPlaceholder,
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                icon: const Icon(Icons.camera_alt_outlined, size: 20, color: AppColors.primary),
-                label: Text(
-                  '+ Tambah Foto',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              if (_attachedPhotos.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 64,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _attachedPhotos.length,
-                    itemBuilder: (context, idx) {
-                      return Container(
-                        width: 64,
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-                        ),
-                        child: Center(
-                          child: Icon(Icons.image, color: Colors.blueGrey[400], size: 28),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-
               const SizedBox(height: 28),
 
               // 7. Simpan Button

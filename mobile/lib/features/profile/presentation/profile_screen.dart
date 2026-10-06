@@ -255,6 +255,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Future<void> _handleBiometricToggle(bool enable) async {
+    final success = await ref.read(authControllerProvider.notifier).toggleBiometric(enable);
+    if (!success && mounted) {
+      final err = ref.read(authControllerProvider).errorMessage;
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err),
+            backgroundColor: AppColors.statusTrip,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleLogout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -436,6 +452,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     icon: Icons.lock_outline_rounded,
                     title: 'Ubah Password',
                     onTap: _showChangePasswordDialog,
+                  ),
+                  _buildMenuDivider(),
+                  _buildMenuItem(
+                    icon: Icons.fingerprint_rounded,
+                    title: 'Login Biometrik / Sidik Jari',
+                    subtitle: authState.isBiometricEnabled ? 'Aktif (Sentuh untuk ubah)' : 'Nonaktif',
+                    trailing: Switch(
+                      value: authState.isBiometricEnabled,
+                      activeThumbColor: const Color(0xFF0284C7),
+                      onChanged: _handleBiometricToggle,
+                    ),
+                    onTap: () => _handleBiometricToggle(!authState.isBiometricEnabled),
                   ),
                   _buildMenuDivider(),
                   _buildMenuItem(

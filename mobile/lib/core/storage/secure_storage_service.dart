@@ -15,6 +15,10 @@ class SecureStorageService {
   static const String _savedUsernameKey = 'saved_username';
   static const String _rememberMeKey = 'remember_me';
 
+  static const String _biometricEnabledKey = 'biometric_enabled';
+  static const String _biometricUsernameKey = 'biometric_username';
+  static const String _biometricPasswordKey = 'biometric_password';
+
   Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
     try {
       await _storage.write(key: _accessTokenKey, value: accessToken);
@@ -71,5 +75,51 @@ class SecureStorageService {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    try {
+      await _storage.write(key: _biometricEnabledKey, value: enabled.toString());
+    } catch (_) {}
+  }
+
+  Future<bool> getBiometricEnabled() async {
+    try {
+      final val = await _storage.read(key: _biometricEnabledKey);
+      return val == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> saveBiometricCredentials({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      await _storage.write(key: _biometricUsernameKey, value: username);
+      await _storage.write(key: _biometricPasswordKey, value: password);
+    } catch (_) {}
+  }
+
+  Future<Map<String, String>?> getBiometricCredentials() async {
+    try {
+      final username = await _storage.read(key: _biometricUsernameKey);
+      final password = await _storage.read(key: _biometricPasswordKey);
+      if (username != null && password != null) {
+        return {'username': username, 'password': password};
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearBiometricCredentials() async {
+    try {
+      await _storage.delete(key: _biometricUsernameKey);
+      await _storage.delete(key: _biometricPasswordKey);
+      await _storage.delete(key: _biometricEnabledKey);
+    } catch (_) {}
   }
 }

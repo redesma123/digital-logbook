@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses kamera untuk mengambil foto bukti gangguan, pemeliharaan, dan inspeksi PLTMh.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi memerlukan akses galeri foto untuk mengunggah dokumen dan foto operasional PLTMh.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Aplikasi menggunakan Face ID / Biometrik untuk login cepat dan verifikasi operator.</string>
 </dict>
 </plist>

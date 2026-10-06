@@ -40,6 +40,8 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   google_fonts: ^6.2.1
   intl: ^0.20.3
+  image_picker: ^1.2.4
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

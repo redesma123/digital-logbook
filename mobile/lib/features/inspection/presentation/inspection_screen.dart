@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/menu_hub_bottom_sheet.dart';
+import '../../../core/widgets/photo_attachment_section.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
 
 class InspectionItem {
@@ -30,6 +31,7 @@ class InspectionScreen extends StatefulWidget {
 
 class _InspectionScreenState extends State<InspectionScreen> {
   final TextEditingController _notesController = TextEditingController();
+  final List<String> _attachedPhotos = [];
   bool _isSaving = false;
 
   late List<InspectionItem> _items;
@@ -354,9 +356,26 @@ class _InspectionScreenState extends State<InspectionScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+
+            // 4. Foto Dokumentasi Observasi
+            PhotoAttachmentSection(
+              label: 'Foto Dokumentasi Temuan',
+              photos: _attachedPhotos,
+              onPhotoAdded: (path) {
+                setState(() {
+                  _attachedPhotos.add(path);
+                });
+              },
+              onPhotoRemoved: (path) {
+                setState(() {
+                  _attachedPhotos.remove(path);
+                });
+              },
+            ),
             const SizedBox(height: 24),
 
-            // 4. Save Button
+            // 5. Save Button
             SizedBox(
               width: double.infinity,
               height: 48,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/photo_attachment_section.dart';
 import '../domain/maintenance_model.dart';
 import 'controllers/maintenance_controller.dart';
 
@@ -120,19 +121,6 @@ class _InputMaintenanceScreenState extends ConsumerState<InputMaintenanceScreen>
         context.go('/maintenance');
       }
     }
-  }
-
-  void _addPhotoMock() {
-    setState(() {
-      _attachedPhotos.add('assets/images/photo_placeholder.jpg');
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Foto dokumentasi berhasil ditambahkan (Total: ${_attachedPhotos.length})'),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
@@ -372,78 +360,19 @@ class _InputMaintenanceScreenState extends ConsumerState<InputMaintenanceScreen>
               const SizedBox(height: 20),
 
               // 7. Foto Section
-              _buildSectionLabel('Foto'),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 72,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    ..._attachedPhotos.map((photoPath) {
-                      return Container(
-                        width: 72,
-                        height: 72,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.neutral300),
-                          color: AppColors.neutral100,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(9),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Container(
-                                color: const Color(0xFF1E293B),
-                                child: const Center(
-                                  child: Icon(Icons.build_rounded, color: Colors.white54, size: 28),
-                                ),
-                              ),
-                              Positioned(
-                                top: 2,
-                                right: 2,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _attachedPhotos.remove(photoPath);
-                                    });
-                                  },
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: const EdgeInsets.all(2),
-                                    child: const Icon(Icons.close, size: 14, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                    // Add Photo Button "+"
-                    InkWell(
-                      onTap: _addPhotoMock,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.neutral300, width: 1.5),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.add, size: 30, color: AppColors.neutral500),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              PhotoAttachmentSection(
+                label: 'Foto',
+                photos: _attachedPhotos,
+                onPhotoAdded: (path) {
+                  setState(() {
+                    _attachedPhotos.add(path);
+                  });
+                },
+                onPhotoRemoved: (path) {
+                  setState(() {
+                    _attachedPhotos.remove(path);
+                  });
+                },
               ),
               const SizedBox(height: 28),
 
