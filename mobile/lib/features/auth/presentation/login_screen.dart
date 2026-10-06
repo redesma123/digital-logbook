@@ -40,14 +40,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
     final controller = ref.read(authControllerProvider.notifier);
     final success = await controller.login(
-      _usernameController.text,
-      _passwordController.text,
+      username,
+      password,
     );
 
     if (success && mounted) {
-      context.go('/home');
+      final authState = ref.read(authControllerProvider);
+      if (authState.isBiometricAvailable && !authState.isBiometricEnabled) {
+        await _promptEnableBiometric(username, password);
+      }
+      if (mounted) {
+        context.go('/home');
+      }
     } else if (mounted) {
       final error = ref.read(authControllerProvider).errorMessage;
       if (error != null) {
@@ -55,6 +64,105 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SnackBar(
             content: Text(error),
             backgroundColor: AppColors.statusTrip,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _promptEnableBiometric(String username, String password) async {
+    final shouldEnable = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset(
+                AppAssets.icFingerprint,
+                width: 26,
+                height: 26,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Aktifkan Sidik Jari?',
+                style: GoogleFonts.inter(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryNavy,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Ingin mengaktifkan login biometrik untuk akun $username? Anda dapat masuk lebih cepat di sesi berikutnya tanpa mengetik password.',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            height: 1.5,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Nanti Saja',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'Aktifkan Sekarang',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldEnable == true && mounted) {
+      final controller = ref.read(authControllerProvider.notifier);
+      final activated = await controller.setupBiometricAfterLogin(
+        username: username,
+        password: password,
+      );
+      if (activated && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login sidik jari berhasil diaktifkan!'),
+            backgroundColor: AppColors.statusRunning,
             behavior: SnackBarBehavior.floating,
           ),
         );

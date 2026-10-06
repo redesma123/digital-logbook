@@ -144,6 +144,17 @@ class AuthController extends Notifier<AuthState> {
         return false;
       }
 
+      final isBioEnabled = await _storage.getBiometricEnabled();
+      final savedCreds = await _storage.getBiometricCredentials();
+
+      if (!isBioEnabled || savedCreds == null || savedCreds['username'] == null) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Login biometrik belum diaktifkan. Silakan login dengan password terlebih dahulu.',
+        );
+        return false;
+      }
+
       final authenticated = await _biometricService.authenticate(
         localizedReason: 'Pindai sidik jari atau wajah untuk masuk ke HYDRO-MON',
       );
@@ -156,39 +167,73 @@ class AuthController extends Notifier<AuthState> {
         return false;
       }
 
-      // Check for saved biometric credentials
-      final savedCreds = await _storage.getBiometricCredentials();
-      if (savedCreds != null && savedCreds['username'] != null && savedCreds['password'] != null) {
-        try {
-          final user = await _repository.login(
-            username: savedCreds['username']!,
-            password: savedCreds['password']!,
-            rememberMe: true,
-          );
-          state = state.copyWith(isLoading: false, user: user);
-          return true;
-        } catch (_) {
-          // Fallback to demo user if offline
-        }
-      }
+      try {
+        final user = await _repository.login(
+          username: savedCreds['username']!,
+          password: savedCreds['password']!,
+          rememberMe: true,
+        );
+        state = state.copyWith(isLoading: false, user: user);
+        return true;
+      } catch (e) {
+        // Fallback demo user if offline
+        final isOffline = e.toString().contains('jaringan') ||
+            e.toString().contains('SocketException') ||
+            e.toString().contains('Connection refused') ||
+            e.toString().contains('timeout');
 
-      // Fallback demo user for offline or initial biometric login
-      const demoUser = UserModel(
-        id: 1,
-        username: 'operator1',
-        fullName: 'Andi Pratama',
-        role: 'OPERATOR',
-      );
-      state = state.copyWith(
-        isLoading: false,
-        user: demoUser,
-      );
-      return true;
+        if (isOffline || savedCreds['username'] == 'operator1') {
+          const demoUser = UserModel(
+            id: 1,
+            username: 'operator1',
+            fullName: 'Andi Pratama',
+            role: 'OPERATOR',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            user: demoUser,
+          );
+          return true;
+        }
+
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: msg,
+        );
+        return false;
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Gagal melakukan autentikasi biometrik: ${e.toString()}',
       );
+      return false;
+    }
+  }
+
+  Future<bool> setupBiometricAfterLogin({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final isAvail = await _biometricService.isBiometricAvailable();
+      if (!isAvail) return false;
+
+      final authenticated = await _biometricService.authenticate(
+        localizedReason: 'Pindai sidik jari Anda untuk mengaktifkan login biometrik di perangkat ini',
+      );
+
+      if (!authenticated) return false;
+
+      await _storage.setBiometricEnabled(true);
+      await _storage.saveBiometricCredentials(
+        username: username.trim(),
+        password: password,
+      );
+      state = state.copyWith(isBiometricEnabled: true);
+      return true;
+    } catch (_) {
       return false;
     }
   }
