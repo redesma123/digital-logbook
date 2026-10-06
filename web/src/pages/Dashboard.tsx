@@ -1,31 +1,85 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-
-const trendData = [
-  { time: '00:00', power: 400 },
-  { time: '02:00', power: 410 },
-  { time: '04:00', power: 405 },
-  { time: '06:00', power: 420 },
-  { time: '08:00', power: 435 },
-  { time: '10:00', power: 445 },
-  { time: '12:00', power: 450 },
-  { time: '14:00', power: 448 },
-];
-
-const energyData = [
-  { time: '00:00', energy: 300 },
-  { time: '02:00', energy: 290 },
-  { time: '04:00', energy: 300 },
-  { time: '06:00', energy: 310 },
-  { time: '08:00', energy: 330 },
-  { time: '10:00', energy: 340 },
-  { time: '12:00', energy: 350 },
-  { time: '14:00', energy: 345 },
-];
+import {
+  dashboardApi,
+  analyticsApi,
+  incidentApi,
+  maintenanceApi,
+  type DashboardSummary,
+  type PerformanceAnalytics,
+  type IncidentItem,
+  type MaintenanceItem
+} from '@/api';
 
 const Dashboard = () => {
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [performance, setPerformance] = useState<PerformanceAnalytics | null>(null);
+  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [maintenances, setMaintenances] = useState<MaintenanceItem[]>([]);
+  const [trendData, setTrendData] = useState<{ time: string; power: number }[]>([]);
+  const [energyData] = useState<{ time: string; energy: number }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const now = new Date();
+        const toDate = now.toISOString().split('T')[0];
+        const fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+        const [sumRes, perfRes, incRes, maintRes, chartRes] = await Promise.allSettled([
+          dashboardApi.getSummary(1),
+          analyticsApi.getPerformance(1, fromDate, toDate),
+          incidentApi.list({ limit: 3 }),
+          maintenanceApi.list({ limit: 3 }),
+          dashboardApi.getChart(1, 'active_power_kw'),
+        ]);
+
+        if (sumRes.status === 'fulfilled') setSummary(sumRes.value);
+        if (perfRes.status === 'fulfilled') setPerformance(perfRes.value);
+        if (incRes.status === 'fulfilled') {
+          const val = incRes.value as any;
+          const incArr = Array.isArray(val) ? val : Array.isArray(val?.data) ? val.data : [];
+          setIncidents(incArr);
+        }
+        if (maintRes.status === 'fulfilled') {
+          const val = maintRes.value as any;
+          const maintArr = Array.isArray(val) ? val : Array.isArray(val?.data) ? val.data : [];
+          setMaintenances(maintArr);
+        }
+        if (chartRes.status === 'fulfilled' && Array.isArray(chartRes.value) && chartRes.value.length > 0) {
+          setTrendData(chartRes.value.map((c) => ({
+            time: c.shift ? `Shift ${c.shift}` : c.date,
+            power: c.value
+          })));
+        } else {
+          setTrendData([]);
+        }
+      } catch (err) {
+        console.error('Failed to load supervisor dashboard data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const currentPowerKw = summary?.latest_entry?.electrical?.active_power_kw ?? 0;
+  const currentFreqHz = summary?.latest_entry?.electrical?.frequency_hz ?? 0;
+  const currentFlowM3s = summary?.latest_entry?.hydraulic?.water_flow_m3_s ?? 0;
+  const availabilityPct = performance?.metrics?.availability_pct != null
+    ? performance.metrics.availability_pct.toFixed(1) 
+    : '0';
+  const unitStatus = summary?.unit?.current_status ?? (isLoading ? 'MEMUAT' : 'STANDBY');
+  const todayEnergy = summary?.today_energy_kwh 
+    ? summary.today_energy_kwh.toLocaleString('id-ID') 
+    : '0';
+
   return (
     <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans">
       <Sidebar />
@@ -43,13 +97,18 @@ const Dashboard = () => {
               <CardHeader className="pb-3 px-6 pt-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase mb-1">MONITORING OPERASIONAL</p>
-                    <CardTitle className="text-lg text-slate-800 font-semibold">Kondisi Unit — PLTMH Unit 1</CardTitle>
+                    <p className="text-[0.65rem] font-bold text-slate-500 tracking-widest uppercase mb-1">MONITORING OPERASIONAL {isLoading && '(Memuat data...)'}</p>
+                    <CardTitle className="text-lg text-slate-800 font-semibold">Kondisi Unit — PLTMH {summary?.unit.name || 'Unit 1'}</CardTitle>
                   </div>
-                  <div className="bg-green-100 text-green-700 px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-green-200">
-                    <div className="bg-green-500"></div>
-                    RUNNING
-                  </div>
+                  <span className={`text-xs font-bold uppercase ${
+                    unitStatus === 'RUNNING' 
+                      ? 'text-green-600' 
+                      : unitStatus === 'TRIP'
+                      ? 'text-red-600'
+                      : 'text-amber-600'
+                  }`}>
+                    {unitStatus}
+                  </span>
                 </div>
               </CardHeader>
               <CardContent className="px-6 pb-6">
@@ -57,31 +116,31 @@ const Dashboard = () => {
                   <div className="bg-[#F8FAFC] p-4 rounded-sm border border-slate-100">
                     <p className="text-[0.65rem] font-bold text-slate-500 tracking-wider uppercase mb-1">DAYA (POWER)</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-slate-800">450</span>
+                      <span className="text-2xl font-bold text-slate-800">{currentPowerKw}</span>
                       <span className="text-xs font-semibold text-slate-500">kW</span>
                     </div>
-                    <p className="text-xs text-green-600 font-semibold mt-1"> Beban 90%</p>
+                    <p className="text-xs text-green-600 font-semibold mt-1">Beban {currentPowerKw > 0 ? Math.round((currentPowerKw / 500) * 100) : 0}%</p>
                   </div>
                   <div className="bg-[#F8FAFC] p-4 rounded-sm border border-slate-100">
                     <p className="text-[0.65rem] font-bold text-slate-500 tracking-wider uppercase mb-1">FREKUENSI</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-slate-800">50.0</span>
+                      <span className="text-2xl font-bold text-slate-800">{currentFreqHz}</span>
                       <span className="text-xs font-semibold text-slate-500">Hz</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Sinkron Grid PLN</p>
+                    <p className="text-xs text-slate-500 mt-1">{currentFreqHz > 0 ? 'Sinkron Grid PLN' : 'Standby'}</p>
                   </div>
                   <div className="bg-[#F8FAFC] p-4 rounded-sm border border-slate-100">
                     <p className="text-[0.65rem] font-bold text-slate-500 tracking-wider uppercase mb-1">DEBIT AIR (FLOW)</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-slate-800">2.50</span>
+                      <span className="text-2xl font-bold text-slate-800">{currentFlowM3s}</span>
                       <span className="text-xs font-semibold text-slate-500">m³/s</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Target: 2.45 m³/s</p>
+                    <p className="text-xs text-slate-500 mt-1">Target Desain: 2.65 m³/s</p>
                   </div>
                   <div className="bg-[#F0F9FF] p-4 rounded-sm border border-blue-100">
                     <p className="text-[0.65rem] font-bold text-blue-600 tracking-wider uppercase mb-1">AVAILABILITY BULAN INI</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-blue-700">98.5</span>
+                      <span className="text-2xl font-bold text-blue-700">{availabilityPct}</span>
                       <span className="text-xs font-semibold text-blue-600">%</span>
                     </div>
                     <p className="text-xs text-green-600 font-semibold mt-1">Target KPI {'>'}95%</p>
@@ -98,29 +157,29 @@ const Dashboard = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-base text-slate-800 font-semibold">Trend Parameter</CardTitle>
-                      <CardDescription className="text-xs text-slate-500 mt-0.5">Profil operasional harian pembangkit</CardDescription>
-                    </div>
-                    <div className="bg-slate-100 rounded-sm p-0.5 flex text-xs font-medium">
-                      <button className="bg-slate-900 text-white px-3 py-1 rounded-sm shadow-sm">Hari Ini</button>
-                      <button className="text-slate-500 px-3 py-1 hover:text-slate-800">7 Hari</button>
+                      <CardDescription className="text-xs text-slate-500 mt-0.5">Profil operasional daya pembangkit</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px] w-full mt-4 bg-slate-50/50 rounded-sm border border-slate-100 pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={[350, 500]} dx={-10} />
-                        <RechartsTooltip />
-                        <Line type="monotone" dataKey="power" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 3, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <div className="h-[200px] w-full mt-4 bg-slate-50/50 rounded-sm border border-slate-100 flex items-center justify-center">
+                    {trendData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dx={-10} />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey="power" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 3, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <span className="text-xs text-slate-400">Belum ada data rekaman parameter hari ini</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center mt-4 text-xs">
-                    <div className="text-slate-500">Rata-rata Harian: <span className="font-semibold text-slate-800">432 kW</span></div>
-                    <div className="text-slate-500">Puncak (Peak): <span className="font-semibold text-slate-800">455 kW (12:00)</span></div>
+                    <div className="text-slate-500">Daya Terkini: <span className="font-semibold text-slate-800">{currentPowerKw > 0 ? `${currentPowerKw} kW` : '-'}</span></div>
+                    <div className="text-slate-500">Status Grid: <span className="font-semibold text-slate-800">{unitStatus}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -135,29 +194,33 @@ const Dashboard = () => {
                     </div>
                     <div className="text-right bg-slate-50 px-3 py-2 rounded-sm border border-slate-100">
                       <div className="text-[0.65rem] font-bold text-slate-400 tracking-wider uppercase mb-0.5">PRODUKSI HARI INI</div>
-                      <div className="text-xl font-bold text-slate-800 leading-none">4.250 <span className="text-xs font-semibold text-slate-500">kWh</span></div>
+                      <div className="text-xl font-bold text-slate-800 leading-none">{todayEnergy} <span className="text-xs font-semibold text-slate-500">kWh</span></div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px] w-full mt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={energyData} margin={{ top: 10, right: 0, bottom: 5, left: -20 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                        <RechartsTooltip cursor={{fill: '#f1f5f9'}} />
-                        <Bar dataKey="energy" radius={[2, 2, 0, 0]} barSize={16}>
-                          {energyData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={index === energyData.length - 1 || index === energyData.length - 2 ? '#0284c7' : '#93c5fd'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="h-[200px] w-full mt-2 flex items-center justify-center bg-slate-50/50 rounded-sm border border-slate-100">
+                    {energyData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={energyData} margin={{ top: 10, right: 0, bottom: 5, left: -20 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                          <RechartsTooltip cursor={{fill: '#f1f5f9'}} />
+                          <Bar dataKey="energy" radius={[2, 2, 0, 0]} barSize={16}>
+                            {energyData.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={index === energyData.length - 1 ? '#0284c7' : '#93c5fd'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <span className="text-xs text-slate-400">Belum ada grafik distribusi energi hari ini</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center mt-4 text-xs border-t border-slate-100 pt-3">
-                    <div className="text-slate-500">Rerata Jam: <span className="font-semibold text-slate-800">303,5 kWh/jam</span></div>
-                    <div className="text-slate-500">Status Ekspor: <span className="font-semibold text-emerald-600">Normal Grid feed</span></div>
+                    <div className="text-slate-500">Total Akumulasi: <span className="font-semibold text-slate-800">{todayEnergy} kWh</span></div>
+                    <div className="text-slate-500">Status Ekspor: <span className="font-semibold text-emerald-600">{unitStatus === 'RUNNING' ? 'Normal Grid Feed' : 'Siaga / Standby'}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -173,7 +236,7 @@ const Dashboard = () => {
                       <CardTitle className="text-base text-slate-800 font-semibold">Gangguan Terbaru</CardTitle>
                       <CardDescription className="text-xs text-slate-500 mt-0.5">Catatan anomali dan alarm operasional</CardDescription>
                     </div>
-                    <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-800">Lihat Log Gangguan</a>
+                    <Link to="/gangguan" className="text-xs font-semibold text-blue-600 hover:text-blue-800">Lihat Log Gangguan</Link>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -186,36 +249,39 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      <tr className="hover:bg-slate-50">
-                        <td className="px-6 py-3 text-xs font-medium text-slate-700">13:15 WIB</td>
-                        <td className="px-6 py-3 text-xs text-slate-700 font-medium">Vibrasi bearing generator</td>
-                        <td className="px-6 py-3 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                            Ditangani
-                          </span>
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-slate-50">
-                        <td className="px-6 py-3 text-xs font-medium text-slate-700">09:40 WIB</td>
-                        <td className="px-6 py-3 text-xs text-slate-600">Fluktuasi level air intake</td>
-                        <td className="px-6 py-3 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            Selesai
-                          </span>
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-slate-50">
-                        <td className="px-6 py-3 text-xs font-medium text-slate-400">Kemarin</td>
-                        <td className="px-6 py-3 text-xs text-slate-500">Trip tegangan switchyard</td>
-                        <td className="px-6 py-3 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                            Selesai
-                          </span>
-                        </td>
-                      </tr>
+                      {Array.isArray(incidents) && incidents.length > 0 ? (
+                        incidents.map((inc) => {
+                          const rawDate = (inc as any).occurred_at || inc.reported_at || (inc as any).created_at;
+                          const timeStr = rawDate && !isNaN(new Date(rawDate).getTime())
+                            ? new Date(rawDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+                            : 'Hari ini';
+                          return (
+                            <tr key={inc.id} className="hover:bg-slate-50">
+                              <td className="px-6 py-3 text-xs font-medium text-slate-700">
+                                {timeStr}
+                              </td>
+                              <td className="px-6 py-3 text-xs text-slate-700 font-medium">{inc.equipment}: {inc.description}</td>
+                              <td className="px-6 py-3 text-right">
+                                <span className={`text-xs font-semibold ${
+                                  inc.status === 'OPEN'
+                                    ? 'text-rose-600'
+                                    : inc.status === 'PROCESS'
+                                    ? 'text-amber-600'
+                                    : 'text-emerald-600'
+                                }`}>
+                                  {inc.status === 'OPEN' ? 'Terbuka' : inc.status === 'PROCESS' ? 'Ditangani' : 'Selesai'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-6 py-8 text-center text-xs text-slate-400">
+                            Belum ada catatan gangguan operasional di database.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </CardContent>
@@ -229,44 +295,41 @@ const Dashboard = () => {
                       <CardTitle className="text-base text-slate-800 font-semibold">Maintenance Terbaru</CardTitle>
                       <CardDescription className="text-xs text-slate-500 mt-0.5">Kegiatan pemeliharaan preventif & korektif</CardDescription>
                     </div>
-                    <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-800">Jadwal Kalender</a>
+                    <Link to="/maintenance" className="text-xs font-semibold text-blue-600 hover:text-blue-800">Jadwal Kalender</Link>
                   </div>
                 </CardHeader>
                 <CardContent className="px-6 pb-6">
                   <div className="space-y-4">
-                    {/* Item 1 */}
-                    <div className="flex justify-between items-start pb-4 border-b border-slate-100">
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-800">Pemeriksaan viskositas bearing</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Jadwal: <span className="font-semibold text-slate-700">Hari Ini (Shift 2)</span> • Teknisi: Bambang</p>
+                    {Array.isArray(maintenances) && maintenances.length > 0 ? (
+                      maintenances.map((m) => {
+                        const schedDate = m.scheduled_date && !isNaN(new Date(m.scheduled_date).getTime())
+                          ? new Date(m.scheduled_date).toLocaleDateString('id-ID')
+                          : 'Terjadwal';
+                        return (
+                          <div key={m.id} className="flex justify-between items-start pb-4 border-b border-slate-100">
+                            <div>
+                              <h4 className="text-sm font-semibold text-slate-800">{m.work_type}: {m.equipment}</h4>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                Jadwal: <span className="font-semibold text-slate-700">{schedDate}</span> • Teknisi: {m.technician || 'Tim Mekanik'}
+                              </p>
+                            </div>
+                            <span className={`text-xs font-semibold ${
+                              m.status === 'PLAN'
+                                ? 'text-blue-600'
+                                : m.status === 'PROCESS'
+                                ? 'text-amber-600'
+                                : 'text-emerald-600'
+                            }`}>
+                              {m.status === 'PLAN' ? 'Rencana' : m.status === 'PROCESS' ? 'Berlangsung' : 'Selesai'}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        Belum ada jadwal pemeliharaan tercatat di database.
                       </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        Berlangsung
-                      </span>
-                    </div>
-                    {/* Item 2 */}
-                    <div className="flex justify-between items-start pb-4 border-b border-slate-100">
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-800">Inspeksi rutin turbin Francis</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Jadwal: 22 Okt 2024 • Hasil: Celah runner aman, tidak ada kavitasi</p>
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Selesai
-                      </span>
-                    </div>
-                    {/* Item 3 */}
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-800">Kalibrasi sensor level air</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Jadwal: 18 Okt 2024 • Deviasi 0.01m (Diterima)</p>
-                      </div>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[0.65rem] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Selesai
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -278,9 +341,9 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle className="text-base text-slate-800 font-semibold">Histori Operasi Terakhir</CardTitle>
-                    <CardDescription className="text-xs text-slate-500 mt-0.5">Logging per jam pada shift berjalan (Shift 1 & 2)</CardDescription>
+                    <CardDescription className="text-xs text-slate-500 mt-0.5">Pencatatan shift berjalan dari database</CardDescription>
                   </div>
-                  <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center">Lihat semua histori →</a>
+                  <Link to="/history" className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center">Lihat semua histori →</Link>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -296,45 +359,30 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    <tr className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-xs font-medium text-slate-700">14:00 WIB</td>
-                      <td className="px-6 py-3">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[0.65rem] font-bold bg-green-50 text-green-700 border border-green-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                          Running
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-xs font-bold text-slate-700">450 kW</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">50.0 Hz</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">2.50 m³/s</td>
-                      <td className="px-6 py-3 text-xs text-slate-600">Operasional normal, pembebanan optimal</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-xs font-medium text-slate-700">13:00 WIB</td>
-                      <td className="px-6 py-3">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[0.65rem] font-bold bg-green-50 text-green-700 border border-green-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                          Running
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-xs font-bold text-slate-700">448 kW</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">50.0 Hz</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">2.49 m³/s</td>
-                      <td className="px-6 py-3 text-xs text-slate-600">Kondisi stabil, debit intake konstan</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="px-6 py-3 text-xs font-medium text-slate-700">12:00 WIB</td>
-                      <td className="px-6 py-3">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[0.65rem] font-bold bg-green-50 text-green-700 border border-green-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                          Running
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-xs font-bold text-slate-700">455 kW</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">50.0 Hz</td>
-                      <td className="px-6 py-3 text-xs font-medium text-slate-600">2.51 m³/s</td>
-                      <td className="px-6 py-3 text-xs text-slate-600">Beban puncak siang hari</td>
-                    </tr>
+                    {summary?.latest_entry ? (
+                      <tr className="hover:bg-slate-50">
+                        <td className="px-6 py-3 text-xs font-medium text-slate-700">
+                          {summary.latest_entry.date} (Shift {summary.latest_entry.shift})
+                        </td>
+                        <td className="px-6 py-3">
+                          <span className={`text-xs font-semibold uppercase ${
+                            summary.latest_entry.unit_status === 'RUNNING' ? 'text-green-600' : 'text-amber-600'
+                          }`}>
+                            {summary.latest_entry.unit_status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-xs font-bold text-slate-700">{summary.latest_entry.electrical?.active_power_kw ?? 0} kW</td>
+                        <td className="px-6 py-3 text-xs font-medium text-slate-600">{summary.latest_entry.electrical?.frequency_hz ?? 0} Hz</td>
+                        <td className="px-6 py-3 text-xs font-medium text-slate-600">{summary.latest_entry.hydraulic?.water_flow_m3_s ?? 0} m³/s</td>
+                        <td className="px-6 py-3 text-xs text-slate-600">{summary.latest_entry.notes || 'Operasional normal'}</td>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-xs text-slate-400">
+                          Belum ada rekaman entri logbook operasi pada hari ini di database.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </CardContent>

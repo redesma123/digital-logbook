@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import {
   AlertTriangle,
-  Clock,
-  CheckCircle2,
   Filter,
   Search,
   Eye,
@@ -17,6 +15,7 @@ import {
   RefreshCw,
   FileSpreadsheet
 } from 'lucide-react';
+import { incidentApi, exportApi } from '@/api';
 
 export type IncidentStatus = 'OPEN' | 'PROCESS' | 'CLOSED';
 
@@ -49,172 +48,16 @@ export interface Incident {
   histories: StatusHistory[];
 }
 
-const initialIncidents: Incident[] = [
-  {
-    id: 1,
-    code: 'INC-2026-001',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    equipment: 'Turbine Runner & Shaft',
-    incident_type: 'Vibrasi Tinggi (> 18 mm/s)',
-    description: 'Terjadi anomali getaran mekanis pada shaft turbin saat beban dinaikkan di atas 1.200 kW. Indikasi resonansi atau kavitasi pada sudu turbin.',
-    operator_action: 'Beban generator segera diturunkan ke 800 kW, membuka bypass aliran air, dan memantau temperatur bearing.',
-    status: 'OPEN',
-    occurred_at: '2026-10-02 08:30',
-    resolved_at: null,
-    reported_by: 'Budi Santoso (Operator)',
-    has_attachment: true,
-    attachment_name: 'vibrasi_shaft_sensor_log.jpg',
-    attachment_size: '1.4 MB',
-    histories: [
-      {
-        id: 1,
-        from_status: null,
-        to_status: 'OPEN',
-        changed_by: 'Budi Santoso',
-        role: 'OPERATOR',
-        changed_at: '2026-10-02 08:35',
-        notes: 'Laporan insiden dibuat pertama kali setelah alarm getaran menyala.'
-      }
-    ]
-  },
-  {
-    id: 2,
-    code: 'INC-2026-002',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    equipment: 'Generator Thrust Bearing',
-    incident_type: 'Overheat Bearing Temp (86°C)',
-    description: 'Suhu bearing thrust generator meningkat perlahan melampaui batas aman (normal maks 75°C). Sirkulasi oli pendingin terindikasi mengalami penurunan laju aliran.',
-    operator_action: 'Pembersihan strainer oil filter jalur sirkulasi oli dan penambahan pelumas darurat.',
-    status: 'PROCESS',
-    occurred_at: '2026-10-01 14:15',
-    resolved_at: null,
-    reported_by: 'Ahmad Hidayat (Operator)',
-    has_attachment: true,
-    attachment_name: 'kondisi_oil_filter.jpg',
-    attachment_size: '2.1 MB',
-    histories: [
-      {
-        id: 2,
-        from_status: null,
-        to_status: 'OPEN',
-        changed_by: 'Ahmad Hidayat',
-        role: 'OPERATOR',
-        changed_at: '2026-10-01 14:20',
-        notes: 'Alarm sensor suhu bearing berbunyi saat shift siang.'
-      },
-      {
-        id: 3,
-        from_status: 'OPEN',
-        to_status: 'PROCESS',
-        changed_by: 'Ahmad Hidayat',
-        role: 'OPERATOR',
-        changed_at: '2026-10-01 14:45',
-        notes: 'Tim operator mulai pembersihan filter strainer dan pemantauan termal kontinu.'
-      }
-    ]
-  },
-  {
-    id: 3,
-    code: 'INC-2026-003',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    equipment: 'Exciter & Automatic Voltage Regulator (AVR)',
-    incident_type: 'Fluktuasi Tegangan Terminal (360V - 425V)',
-    description: 'Tegangan terminal generator tidak stabil saat peralihan beban jaringan PLN. Respon AVR lambat dan memicu warning proteksi over/under voltage.',
-    operator_action: 'Alihkan mode eksitasi ke manual potentiometer, lakukan kalibrasi sensing resistor dan pengencangan terminal kabel proteksi.',
-    status: 'CLOSED',
-    occurred_at: '2026-09-29 19:10',
-    resolved_at: '2026-09-30 11:30',
-    reported_by: 'Siti Rahma (Operator)',
-    has_attachment: true,
-    attachment_name: 'avr_sensing_module.png',
-    attachment_size: '890 KB',
-    histories: [
-      {
-        id: 4,
-        from_status: null,
-        to_status: 'OPEN',
-        changed_by: 'Siti Rahma',
-        role: 'OPERATOR',
-        changed_at: '2026-09-29 19:15',
-        notes: 'Tegangan berosilasi pada shift malam.'
-      },
-      {
-        id: 5,
-        from_status: 'OPEN',
-        to_status: 'PROCESS',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-30 08:00',
-        notes: 'Penanganan tim teknisi elektrikal untuk penggantian modul sensing AVR.'
-      },
-      {
-        id: 6,
-        from_status: 'PROCESS',
-        to_status: 'CLOSED',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-30 11:30',
-        notes: 'Modul sensing diganti baru, uji tegangan stabil di 398V beban penuh. Unit kembali normal.'
-      }
-    ]
-  },
-  {
-    id: 4,
-    code: 'INC-2026-004',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    equipment: 'Main Inlet Valve (MIV)',
-    incident_type: 'Kebocoran Oli Hidrolik Tekanan Tinggi',
-    description: 'Ditemukan rembesan oli hidrolik pada sambungan selang actuating cylinder MIV saat proses sinkronisasi unit.',
-    operator_action: 'Isolasi saluran pipa hidrolik, menempatkan oil drip tray penampung, dan mempersiapkan seal cadangan.',
-    status: 'CLOSED',
-    occurred_at: '2026-09-26 10:00',
-    resolved_at: '2026-09-27 15:00',
-    reported_by: 'Budi Santoso (Operator)',
-    has_attachment: false,
-    histories: [
-      {
-        id: 7,
-        from_status: null,
-        to_status: 'OPEN',
-        changed_by: 'Budi Santoso',
-        role: 'OPERATOR',
-        changed_at: '2026-09-26 10:05',
-        notes: 'Rembesan terdeteksi saat inspeksi visual shift pagi.'
-      },
-      {
-        id: 8,
-        from_status: 'OPEN',
-        to_status: 'PROCESS',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-26 11:30',
-        notes: 'Pemberian instruksi ganti seal O-ring hidrolik.'
-      },
-      {
-        id: 9,
-        from_status: 'PROCESS',
-        to_status: 'CLOSED',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-27 15:00',
-        notes: 'O-ring baru terpasang, tekanan hidrolik 120 bar tidak ada kebocoran.'
-      }
-    ]
-  }
-];
-
 const Gangguan = () => {
-  const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   
-  // Simulasi peran pengguna saat ini (untuk menguji batas hak akses sesuai aturan)
-  const currentRole: 'SUPERVISOR' | 'OPERATOR'= 'SUPERVISOR';
+  // Peran pengguna saat ini dari storage
+  const currentRole = (localStorage.getItem('user_role') === 'OPERATOR' ? 'OPERATOR' : 'SUPERVISOR') as 'SUPERVISOR' | 'OPERATOR';
 
   // Modal State
   const [detailIncident, setDetailIncident] = useState<Incident | null>(null);
@@ -225,10 +68,56 @@ const Gangguan = () => {
   const [formUnit, setFormUnit] = useState<number>(1);
   const [formEquipment, setFormEquipment] = useState<string>('');
   const [formIncidentType, setFormIncidentType] = useState<string>('');
-  const [formOccurredAt, setFormOccurredAt] = useState<string>('2026-10-02 10:00');
+  const [formOccurredAt, setFormOccurredAt] = useState<string>(new Date().toISOString().slice(0, 16).replace('T', ' '));
   const [formDescription, setFormDescription] = useState<string>('');
   const [formOperatorAction, setFormOperatorAction] = useState<string>('');
   const [formAttachmentName, setFormAttachmentName] = useState<string>('');
+
+  // Sinkronisasi dengan database backend
+  const fetchIncidents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await incidentApi.list({ limit: 50 });
+      if (res && res.data && res.data.length > 0) {
+        const mapped: Incident[] = res.data.map((item) => ({
+          id: item.id,
+          code: `INC-2026-${String(item.id).padStart(3, '0')}`,
+          unit_id: item.unit_id,
+          unit_name: item.unit?.name || (item.unit_id === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)'),
+          equipment: item.equipment,
+          incident_type: item.incident_type,
+          description: item.description,
+          operator_action: item.action_taken || 'Belum ada tindakan awal',
+          status: item.status,
+          occurred_at: new Date(item.reported_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+          resolved_at: item.status === 'CLOSED' ? new Date().toISOString() : null,
+          reported_by: item.reported_by?.full_name || 'Operator Lapangan',
+          has_attachment: false,
+          histories: item.status_histories?.map((h) => ({
+            id: h.id,
+            from_status: h.from_status,
+            to_status: h.to_status,
+            changed_by: h.changer?.full_name || 'Petugas',
+            role: 'SUPERVISOR' as const,
+            changed_at: new Date(h.changed_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+            notes: h.notes || 'Pembaruan status'
+          })) || []
+        }));
+        setIncidents(mapped);
+      } else {
+        setIncidents([]);
+      }
+    } catch (err) {
+      console.warn('Backend incidents belum ada data atau gagal:', err);
+      setIncidents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIncidents();
+  }, [fetchIncidents]);
 
   // Filtered Data
   const filteredIncidents = incidents.filter((item) => {
@@ -257,46 +146,58 @@ const Gangguan = () => {
   const processCount = incidents.filter((i) => i.status === 'PROCESS').length;
   const closedCount = incidents.filter((i) => i.status === 'CLOSED').length;
 
-  // Handle Form Submission
-  const handleCreateIncident = (e: React.FormEvent) => {
+  // Handle Form Submission ke Backend
+  const handleCreateIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formEquipment || !formIncidentType || !formDescription) {
       alert('Mohon lengkapi bagian peralatan, jenis gangguan, dan deskripsi kejadian.');
       return;
     }
 
-    const newId = incidents.length + 1;
-    const newCode = `INC-2026-${String(newId).padStart(3, '0')}`;
-    const newIncident: Incident = {
-      id: newId,
-      code: newCode,
-      unit_id: formUnit,
-      unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
-      equipment: formEquipment,
-      incident_type: formIncidentType,
-      description: formDescription,
-      operator_action: formOperatorAction || 'Belum ada tindakan awal',
-      status: 'OPEN',
-      occurred_at: formOccurredAt,
-      resolved_at: null,
-      reported_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya (Supervisor)' : 'Budi Santoso (Operator)',
-      has_attachment: !!formAttachmentName,
-      attachment_name: formAttachmentName || undefined,
-      attachment_size: formAttachmentName ? '1.2 MB' : undefined,
-      histories: [
-        {
-          id: Date.now(),
-          from_status: null,
-          to_status: 'OPEN',
-          changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
-          role: currentRole,
-          changed_at: new Date().toISOString().slice(0, 16).replace('T', ' '),
-          notes: 'Laporan gangguan baru dibuat.'
-        }
-      ]
-    };
+    try {
+      await incidentApi.create({
+        unit_id: formUnit,
+        equipment: formEquipment,
+        incident_type: formIncidentType,
+        description: formDescription,
+        action_taken: formOperatorAction,
+      });
+      await fetchIncidents();
+    } catch {
+      // Fallback lokal jika backend offline
+      const newId = incidents.length + 1;
+      const newCode = `INC-2026-${String(newId).padStart(3, '0')}`;
+      const newIncident: Incident = {
+        id: newId,
+        code: newCode,
+        unit_id: formUnit,
+        unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
+        equipment: formEquipment,
+        incident_type: formIncidentType,
+        description: formDescription,
+        operator_action: formOperatorAction || 'Belum ada tindakan awal',
+        status: 'OPEN',
+        occurred_at: formOccurredAt,
+        resolved_at: null,
+        reported_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya (Supervisor)' : 'Budi Santoso (Operator)',
+        has_attachment: !!formAttachmentName,
+        attachment_name: formAttachmentName || undefined,
+        attachment_size: formAttachmentName ? '1.2 MB' : undefined,
+        histories: [
+          {
+            id: Date.now(),
+            from_status: null,
+            to_status: 'OPEN',
+            changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
+            role: currentRole,
+            changed_at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+            notes: 'Laporan gangguan baru dibuat.'
+          }
+        ]
+      };
+      setIncidents([newIncident, ...incidents]);
+    }
 
-    setIncidents([newIncident, ...incidents]);
     setIsCreateOpen(false);
     // Reset Form
     setFormEquipment('');
@@ -306,11 +207,8 @@ const Gangguan = () => {
     setFormAttachmentName('');
   };
 
-  // Status Change Logic adhering strictly to RULES.md
-  // OPEN -> PROCESS (Operator / Supervisor)
-  // PROCESS -> CLOSED (Supervisor only)
-  // CLOSED -> PROCESS (Supervisor only with notes)
-  const handleUpdateStatus = (targetStatus: IncidentStatus) => {
+  // Status Change Logic dengan API
+  const handleUpdateStatus = async (targetStatus: IncidentStatus) => {
     if (!detailIncident) return;
 
     if (targetStatus === 'CLOSED' && currentRole !== 'SUPERVISOR') {
@@ -328,52 +226,56 @@ const Gangguan = () => {
       return;
     }
 
-    const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    const newHistory: StatusHistory = {
-      id: Date.now(),
-      from_status: detailIncident.status,
-      to_status: targetStatus,
-      changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
-      role: currentRole,
-      changed_at: now,
-      notes: statusNote
-    };
+    try {
+      await incidentApi.changeStatus(detailIncident.id, targetStatus, statusNote);
+      await fetchIncidents();
+    } catch {
+      // Fallback state update
+      const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const newHistory: StatusHistory = {
+        id: Date.now(),
+        from_status: detailIncident.status,
+        to_status: targetStatus,
+        changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
+        role: currentRole,
+        changed_at: now,
+        notes: statusNote
+      };
 
-    const updated: Incident = {
-      ...detailIncident,
-      status: targetStatus,
-      resolved_at: targetStatus === 'CLOSED' ? now : null,
-      histories: [...detailIncident.histories, newHistory]
-    };
+      const updated: Incident = {
+        ...detailIncident,
+        status: targetStatus,
+        resolved_at: targetStatus === 'CLOSED' ? now : null,
+        histories: [...detailIncident.histories, newHistory]
+      };
 
-    setIncidents(incidents.map((i) => (i.id === updated.id ? updated : i)));
-    setDetailIncident(updated);
+      setIncidents(incidents.map((i) => (i.id === updated.id ? updated : i)));
+      setDetailIncident(updated);
+    }
+
     setStatusNote('');
+  };
+
+  const handleExportIncidents = async () => {
+    setIsExporting(true);
+    try {
+      await exportApi.downloadIncidents({ format: 'xlsx' });
+    } catch (err) {
+      alert('Gagal mengunduh file laporan gangguan.');
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusBadge = (status: IncidentStatus) => {
     switch (status) {
       case 'OPEN':
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5 animate-pulse"></span>
-            OPEN
-          </span>
-        );
+        return <span className="text-xs font-bold text-rose-600">OPEN</span>;
       case 'PROCESS':
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-            PROCESS
-          </span>
-        );
+        return <span className="text-xs font-bold text-amber-600">PROCESS</span>;
       case 'CLOSED':
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 size={12} className="mr-1 text-emerald-600" />
-            CLOSED
-          </span>
-        );
+        return <span className="text-xs font-bold text-emerald-600">CLOSED</span>;
     }
   };
 
@@ -398,11 +300,20 @@ const Gangguan = () => {
               {/* Action Buttons & Role Selector Simulation */}
               <div className="flex items-center flex-wrap gap-2.5">
                 <Button
-                  onClick={() => alert('Fitur ekspor rekapan data gangguan ke CSV/Excel.')}
-                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs h-9 px-3 shadow-sm rounded flex items-center"
+                  disabled={isExporting}
+                  onClick={handleExportIncidents}
+                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs h-9 px-3 shadow-sm rounded flex items-center cursor-pointer"
                 >
                   <FileSpreadsheet size={15} className="mr-1.5 text-emerald-600" />
-                  Ekspor CSV
+                  {isExporting ? 'Mengunduh...' : 'Ekspor Excel'}
+                </Button>
+                <Button
+                  disabled={isLoading}
+                  onClick={fetchIncidents}
+                  className="bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs h-9 px-3 shadow-sm rounded flex items-center cursor-pointer"
+                >
+                  <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+                  {isLoading ? 'Menyinkronkan...' : 'Segarkan'}
                 </Button>
               </div>
             </div>
@@ -416,9 +327,6 @@ const Gangguan = () => {
                     <p className="text-2xl font-black text-slate-900 mt-1">{totalCount}</p>
                     <span className="text-[0.7rem] text-slate-400 font-medium">Rekapitulasi seluruh unit</span>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-                    <AlertTriangle size={20} />
-                  </div>
                 </div>
               </Card>
 
@@ -428,9 +336,6 @@ const Gangguan = () => {
                     <p className="text-[0.65rem] font-bold text-rose-600 uppercase tracking-widest">Status: OPEN (Perlu Tindakan)</p>
                     <p className="text-2xl font-black text-rose-700 mt-1">{openCount}</p>
                     <span className="text-[0.7rem] text-rose-600/80 font-medium">Menunggu respon/investigasi</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
-                    <Clock size={20} />
                   </div>
                 </div>
               </Card>
@@ -442,9 +347,6 @@ const Gangguan = () => {
                     <p className="text-2xl font-black text-amber-700 mt-1">{processCount}</p>
                     <span className="text-[0.7rem] text-amber-600/80 font-medium">Proses perbaikan aktif</span>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                    <RefreshCw size={20} />
-                  </div>
                 </div>
               </Card>
 
@@ -454,9 +356,6 @@ const Gangguan = () => {
                     <p className="text-[0.65rem] font-bold text-emerald-600 uppercase tracking-widest">Status: CLOSED (Selesai)</p>
                     <p className="text-2xl font-black text-emerald-700 mt-1">{closedCount}</p>
                     <span className="text-[0.7rem] text-emerald-600/80 font-medium">Telah diverifikasi supervisor</span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 size={20} />
                   </div>
                 </div>
               </Card>

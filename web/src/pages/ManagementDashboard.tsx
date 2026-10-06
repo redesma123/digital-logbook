@@ -1,11 +1,13 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '@/assets/logo.png';
 import {
   FileSpreadsheet,
   RefreshCw,
   Info,
-  LogOut
+  LogOut,
+  CheckCircle2,
+  User
 } from 'lucide-react';
 import {
   ComposedChart,
@@ -19,6 +21,17 @@ import {
   Legend
 } from 'recharts';
 
+import {
+  authApi,
+  dashboardApi,
+  analyticsApi,
+  incidentApi,
+  exportApi,
+  type DashboardSummary,
+  type PerformanceAnalytics,
+  type IncidentItem
+} from '@/api';
+
 interface ProductionChartItem {
   label: string;
   energy: number;
@@ -29,119 +42,198 @@ interface ProductionChartItem {
   power?: number;
 }
 
-// Data Tren Energi & Target PLN (Bulanan)
-const monthlyProductionTrend: ProductionChartItem[] = [
-  { label: 'Mei 2026', energy: 515, target: 520, cf: 69.2, af: 96.5, flow: 2.28 },
-  { label: 'Jun 2026', energy: 485, target: 500, cf: 67.4, af: 95.8, flow: 2.15 },
-  { label: 'Jul 2026', energy: 465, target: 480, cf: 62.5, af: 95.1, flow: 2.05 },
-  { label: 'Ags 2026', energy: 445, target: 470, cf: 59.8, af: 94.2, flow: 1.98 },
-  { label: 'Sep 2026', energy: 538, target: 530, cf: 74.7, af: 97.2, flow: 2.30 },
-  { label: 'Okt 2026 (Berjalan)', energy: 558, target: 520, cf: 77.3, af: 98.1, flow: 2.45 },
-];
-
-// Data Harian 7 Hari Terakhir
-const dailyRecentData: ProductionChartItem[] = [
-  { label: '29 Sep', energy: 19.4, target: 19.0, power: 810, flow: 2.35 },
-  { label: '30 Sep', energy: 20.0, target: 19.0, power: 835, flow: 2.42 },
-  { label: '01 Okt', energy: 20.6, target: 19.5, power: 860, flow: 2.51 },
-  { label: '02 Okt', energy: 18.4, target: 19.5, power: 765, flow: 2.20 },
-  { label: '03 Okt', energy: 20.8, target: 19.5, power: 868, flow: 2.54 },
-  { label: '04 Okt', energy: 21.2, target: 19.5, power: 885, flow: 2.58 },
-  { label: '05 Okt (Hari Ini)', energy: 19.8, target: 19.0, power: 935, flow: 2.48 },
-];
+// Data interface chart produksi
+interface ProductionChartItem {
+  label: string;
+  energy: number;
+  target: number;
+  cf?: number;
+  af?: number;
+  flow?: number;
+  power?: number;
+}
 
 const ManagementDashboard = () => {
   const [periodFilter, setPeriodFilter] = useState<'month' | 'week'>('month');
+  const [summaryU1, setSummaryU1] = useState<DashboardSummary | null>(null);
+  const [summaryU2, setSummaryU2] = useState<DashboardSummary | null>(null);
+  const [performance, setPerformance] = useState<PerformanceAnalytics | null>(null);
+  const [liveIncidents, setLiveIncidents] = useState<IncidentItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Role Guard: Hanya peran MANAJEMEN yang dapat mengakses halaman ini
   useEffect(() => {
     const role = localStorage.getItem('user_role');
-    if (role !== 'MANAJEMEN') {
+    if (role !== 'MANAJEMEN' && role !== 'MANAGEMENT') {
       alert('Akses Terbatas: Halaman ini khusus untuk peran Akun Manajemen (Direksi). Anda akan dialihkan ke halaman login.');
       navigate('/login', { replace: true });
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('user_name');
+  const handleLogout = async () => {
+    await authApi.logout();
     navigate('/login', { replace: true });
   };
+
+  // Mengambil data terkini dari Backend REST API
+  const loadDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const now = new Date();
+      const toDate = now.toISOString().split('T')[0];
+      let fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      if (periodFilter === 'week') {
+        const pastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        fromDate = pastWeek.toISOString().split('T')[0];
+      }
+
+      const [resU1, resU2, resPerf, resInc] = await Promise.allSettled([
+        dashboardApi.getSummary(1),
+        dashboardApi.getSummary(2),
+        analyticsApi.getPerformance(1, fromDate, toDate),
+        incidentApi.list({ limit: 5 }),
+      ]);
+
+      if (resU1.status === 'fulfilled') setSummaryU1(resU1.value);
+      if (resU2.status === 'fulfilled') setSummaryU2(resU2.value);
+      if (resPerf.status === 'fulfilled') setPerformance(resPerf.value);
+      if (resInc.status === 'fulfilled') {
+        const val = resInc.value as any;
+        const incArray = Array.isArray(val)
+          ? val
+          : Array.isArray(val?.data)
+          ? val.data
+          : Array.isArray(val?.items)
+          ? val.items
+          : Array.isArray(val?.incidents)
+          ? val.incidents
+          : [];
+        setLiveIncidents(incArray);
+      }
+    } catch (err) {
+      console.error('Error fetching management dashboard data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [periodFilter]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Handler Export Excel/CSV
+  const handleExport = async (format: 'xlsx' | 'csv' = 'xlsx') => {
+    setIsExporting(true);
+    try {
+      await exportApi.downloadLogbook({ unit_id: 1, format });
+      setFeedbackMsg(`Laporan berhasil diunduh (${format.toUpperCase()})`);
+      setTimeout(() => setFeedbackMsg(null), 3500);
+    } catch (err) {
+      alert('Gagal mengunduh laporan. Periksa koneksi backend.');
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Nilai metrik dari API (murni database, fallback 0 jika belum ada data)
+  const u1Kw = summaryU1?.latest_entry?.electrical?.active_power_kw ?? 0;
+  const u2Kw = summaryU2?.latest_entry?.electrical?.active_power_kw ?? 0;
+  const totalKw = u1Kw + u2Kw;
+  const currentAf = performance?.metrics?.availability_pct != null
+    ? Number(performance.metrics.availability_pct.toFixed(1)) 
+    : 0;
+  const currentCf = performance?.metrics?.capacity_factor_pct != null
+    ? Number(performance.metrics.capacity_factor_pct.toFixed(1)) 
+    : 0;
+  const totalEnergyMwh = performance?.metrics?.total_energy_kwh != null
+    ? Number((performance.metrics.total_energy_kwh / 1000).toFixed(1)) 
+    : 0;
+  const todayEnergyKwh = (summaryU1?.today_energy_kwh ?? 0) + (summaryU2?.today_energy_kwh ?? 0);
+  const totalActiveIncidents = (summaryU1?.active_incidents_count ?? 0) + (summaryU2?.active_incidents_count ?? 0);
 
   // Ringkasan Eksekutif Jawaban 5 Parameter Manajemen
   const executiveMetrics = {
     // 1. Kondisi PLTMH saat ini
     plantStatus: {
-      totalActivePowerKw: 935,
+      totalActivePowerKw: totalKw,
       totalCapacityKw: 1000,
-      loadPercentage: 93.5,
-      frequencyHz: 50.02,
-      gridVoltageV: 398,
-      waterHeadM: 14.8,
-      unit1Status: 'RUNNING',
-      unit1PowerKw: 475,
-      unit2Status: 'RUNNING',
-      unit2PowerKw: 460
+      loadPercentage: Number(((totalKw / 1000) * 100).toFixed(1)),
+      frequencyHz: summaryU1?.latest_entry?.electrical?.frequency_hz ?? 0,
+      gridVoltageV: summaryU1?.latest_entry?.electrical?.voltage_v ?? 0,
+      waterHeadM: summaryU1?.latest_entry?.hydraulic?.water_level_m ?? 0,
+      unit1Status: summaryU1?.unit?.current_status ?? 'STANDBY',
+      unit1PowerKw: u1Kw,
+      unit2Status: summaryU2?.unit?.current_status ?? 'STANDBY',
+      unit2PowerKw: u2Kw
     },
     // 2. Berapa energi yang dihasilkan
     energyProduction: {
-      thisMonthMwh: 558.5,
+      thisMonthMwh: totalEnergyMwh,
       targetMonthMwh: 520.0,
-      todayKwh: 10850,
-      ytdGwh: 4.90,
-      estimatedRevenueIdr: 586425000,
-      revenueDeltaPercentage: 7.4
+      todayKwh: todayEnergyKwh,
+      ytdGwh: Number((totalEnergyMwh / 1000).toFixed(2)),
+      estimatedRevenueIdr: Math.round(totalEnergyMwh * 1000 * 1050),
+      revenueDeltaPercentage: totalEnergyMwh > 0 ? Number((((totalEnergyMwh - 520) / 520) * 100).toFixed(1)) : 0
     },
     // 3. Apakah performa turun
     performanceEvaluation: {
-      isPerformanceDown: false,
-      capacityFactorPct: 77.3,
-      prevCapacityFactorPct: 74.4,
-      cfDeltaPct: 2.9,
-      hydraulicEfficiencyPct: 92.4,
-      healthIndexScore: 94,
-      evaluationNote: 'Performa stabil dan di atas target. Tidak ada indikasi kavitasi atau penurunan efisiensi termal.'
+      isPerformanceDown: currentCf > 0 && currentCf < 70,
+      capacityFactorPct: currentCf,
+      prevCapacityFactorPct: 0,
+      cfDeltaPct: 0,
+      hydraulicEfficiencyPct: performance?.metrics?.water_utilization_pct != null
+        ? Number(performance.metrics.water_utilization_pct.toFixed(1)) 
+        : 0,
+      healthIndexScore: totalActiveIncidents === 0 ? 100 : 85,
+      evaluationNote: currentCf >= 70
+        ? 'Performa stabil dan di atas target. Tidak ada indikasi kavitasi atau penurunan efisiensi termal.'
+        : currentCf === 0
+        ? 'Belum ada data pencatatan logbook operasional di database.'
+        : 'Performa berada di bawah target kapasitas desain.'
     },
     // 4. Berapa availability unit
     availability: {
-      availabilityFactorPct: 98.1,
-      totalRunningHours: 708,
-      totalPeriodHours: 720,
-      downtimeHours: 12,
-      plannedMaintenanceHours: 12,
+      availabilityFactorPct: currentAf,
+      totalRunningHours: performance?.metrics?.total_running_hours ?? 0,
+      totalPeriodHours: performance?.period?.period_hours ?? 720,
+      downtimeHours: (performance?.period?.period_hours ?? 720) - (performance?.metrics?.total_running_hours ?? 0),
+      plannedMaintenanceHours: 0,
       unplannedDowntimeHours: 0,
       reliabilityScore: 100
     },
     // 5. Apa saja gangguan yang terjadi
     incidentsSummary: {
-      activeProcessCount: 1,
-      resolvedThisMonthCount: 3,
-      totalThisMonth: 4,
-      recentIncidents: [
-        {
-          id: 1,
-          code: 'INC-2026-002',
-          unit: 'Unit 1 (PLTMH)',
-          equipment: 'Generator Thrust Bearing',
-          issue: 'Overheat Bearing Temp (86°C) - Penurunan debit sirkulasi oli pendingin',
-          status: 'PROCESS',
-          impact: 'Beban diturunkan sementara ke 450 kW (Unit tetap operasi sinkron)',
-          occurredAt: '01 Okt 2026 14:15 WIB',
-          action: 'Pembersihan filter strainer dan flushing pelumas berjalan'
-        },
-        {
-          id: 2,
-          code: 'INC-2026-001',
-          unit: 'Unit 1 (PLTMH)',
-          equipment: 'Turbine Runner & Shaft',
-          issue: 'Vibrasi mekanis terindikasi melampaui batas toleransi saat beban puncak',
-          status: 'CLOSED',
-          impact: 'Penyesuaian governor valve',
-          occurredAt: '02 Okt 2026 08:30 WIB',
-          action: 'Selesai diverifikasi supervisor. Vibrasi normal di 12 mm/s.'
-        }
-      ]
+      activeProcessCount: totalActiveIncidents,
+      resolvedThisMonthCount: 0,
+      totalThisMonth: totalActiveIncidents,
+      recentIncidents: (Array.isArray(liveIncidents) && liveIncidents.length > 0)
+        ? liveIncidents.map((inc) => {
+            const rawDate = (inc as any).occurred_at || inc.reported_at || (inc as any).created_at;
+            let formattedDate = 'Baru saja';
+            if (rawDate) {
+              const d = new Date(rawDate);
+              if (!isNaN(d.getTime())) {
+                formattedDate = d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB';
+              }
+            }
+            const actionText = inc.action_taken || (inc as any).operator_action || 'Dalam pemantauan operasional';
+            return {
+              id: inc.id,
+              code: `INC-2026-${String(inc.id).padStart(3, '0')}`,
+              unit: inc.unit?.name || 'Unit 1 (PLTMH)',
+              equipment: inc.equipment,
+              issue: inc.description,
+              status: inc.status,
+              impact: actionText,
+              occurredAt: formattedDate,
+              action: actionText
+            };
+          })
+        : []
     }
   };
 
@@ -176,9 +268,28 @@ const ManagementDashboard = () => {
   const cardSub = 'text-xs text-slate-500 mt-0.5';
 
   const incidents = executiveMetrics.incidentsSummary.recentIncidents;
-  const resolvedPct = Math.round(
-    (executiveMetrics.incidentsSummary.resolvedThisMonthCount / executiveMetrics.incidentsSummary.totalThisMonth) * 100
-  );
+  const resolvedPct = executiveMetrics.incidentsSummary.totalThisMonth > 0
+    ? Math.round((executiveMetrics.incidentsSummary.resolvedThisMonthCount / executiveMetrics.incidentsSummary.totalThisMonth) * 100)
+    : 100;
+
+  const dynamicMonthlyTrend: ProductionChartItem[] = [
+    { label: 'Mei', energy: 0, target: 520 },
+    { label: 'Jun', energy: 0, target: 500 },
+    { label: 'Jul', energy: 0, target: 480 },
+    { label: 'Ags', energy: 0, target: 470 },
+    { label: 'Sep', energy: 0, target: 530 },
+    { label: 'Bulan Berjalan', energy: totalEnergyMwh, target: 520, cf: currentCf, af: currentAf },
+  ];
+
+  const dynamicDailyData: ProductionChartItem[] = [
+    { label: 'H-6', energy: 0, target: 19.5 },
+    { label: 'H-5', energy: 0, target: 19.5 },
+    { label: 'H-4', energy: 0, target: 19.5 },
+    { label: 'H-3', energy: 0, target: 19.5 },
+    { label: 'H-2', energy: 0, target: 19.5 },
+    { label: 'Kemarin', energy: 0, target: 19.5 },
+    { label: 'Hari Ini', energy: Number((todayEnergyKwh / 1000).toFixed(2)), target: 19.5 },
+  ];
 
   const kpis = [
     {
@@ -207,6 +318,9 @@ const ManagementDashboard = () => {
     }
   ];
 
+  const currentUserName = localStorage.getItem('user_name') || 'Pengguna';
+  const currentUserRole = localStorage.getItem('user_role') || 'MANAGEMENT';
+
   return (
     <div
       className="min-h-screen bg-[#EEF2F7] text-slate-800 flex flex-col text-[13px]"
@@ -225,12 +339,10 @@ const ManagementDashboard = () => {
 
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#0F4C81] text-white flex items-center justify-center text-xs font-semibold">
-                BT
-              </div>
+              <User size={20} className="text-slate-600" />
               <div className="leading-tight hidden sm:block">
-                <div className="text-[13px] font-medium text-slate-900">Bambang Trihatmojo</div>
-                <div className="text-xs text-slate-500">Manajemen</div>
+                <div className="text-[13px] font-medium text-slate-900">{currentUserName}</div>
+                <div className="text-xs text-slate-500">{currentUserRole}</div>
               </div>
             </div>
             <div className="h-7 w-px bg-slate-200 mx-1"></div>
@@ -248,29 +360,38 @@ const ManagementDashboard = () => {
 
       <main className="flex-1 px-6 py-5">
         <div className="max-w-[1600px] mx-auto space-y-5">
+          {feedbackMsg && (
+            <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs flex items-center gap-2 shadow-xs">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <span>{feedbackMsg}</span>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Dashboard Manajemen</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Capaian produksi, keandalan unit, dan gangguan &middot; Oktober 2026
+                Capaian produksi, keandalan unit, dan gangguan &middot; Oktober 2026 {isLoading && '(Memperbarui...)'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => alert('Mengunduh Laporan Ringkasan Eksekutif Manajemen format CSV/Excel.')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs"
+                disabled={isExporting}
+                onClick={() => handleExport('xlsx')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-60"
               >
-                <FileSpreadsheet size={14} />
-                Ekspor CSV
+                <FileSpreadsheet size={14} className="text-emerald-600" />
+                <span>{isExporting ? 'Mengunduh...' : 'Ekspor Excel'}</span>
               </button>
               <button
                 type="button"
-                onClick={() => alert('Data eksekutif berhasil disegarkan.')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F4C81] hover:bg-[#0c3d66] text-white rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs"
+                disabled={isLoading}
+                onClick={loadDashboardData}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F4C81] hover:bg-[#0c3d66] text-white rounded-lg text-xs font-medium cursor-pointer whitespace-nowrap shadow-xs disabled:opacity-70"
               >
-                <RefreshCw size={14} />
-                Perbarui
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <span>{isLoading ? 'Menyinkronkan...' : 'Perbarui'}</span>
               </button>
             </div>
           </div>
@@ -332,7 +453,7 @@ const ManagementDashboard = () => {
                   <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
-                        data={periodFilter === 'month' ? monthlyProductionTrend : dailyRecentData}
+                        data={periodFilter === 'month' ? dynamicMonthlyTrend : dynamicDailyData}
                         margin={{ top: 6, right: 8, bottom: 0, left: -12 }}
                       >
                         <CartesianGrid stroke="#EEF2F7" vertical={false} />
@@ -378,7 +499,7 @@ const ManagementDashboard = () => {
                 <div className="px-4">
                   <div className="h-[260px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={monthlyProductionTrend} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
+                      <ComposedChart data={dynamicMonthlyTrend} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
                         <CartesianGrid stroke="#EEF2F7" vertical={false} />
                         <XAxis
                           dataKey="label"
@@ -406,8 +527,8 @@ const ManagementDashboard = () => {
                   </div>
                 </div>
                 <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                  <span>CF <span className="font-medium text-slate-900">77,3%</span> &middot; target &gt;70%</span>
-                  <span>AF <span className="font-medium text-slate-900">98,1%</span> &middot; target &gt;95%</span>
+                  <span>CF <span className="font-medium text-slate-900">{currentCf}%</span> &middot; target &gt;70%</span>
+                  <span>AF <span className="font-medium text-slate-900">{currentAf}%</span> &middot; target &gt;95%</span>
                 </div>
               </section>
 
@@ -421,26 +542,32 @@ const ManagementDashboard = () => {
                   <Badge>{executiveMetrics.incidentsSummary.activeProcessCount} aktif</Badge>
                 </div>
                 <ul className="px-5 pb-2">
-                  {incidents.map((incident, idx) => (
-                    <li key={incident.id} className={`py-3 ${idx > 0 ? 'border-t border-slate-100' : ''}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-[13px] font-medium text-slate-900">{incident.equipment}</div>
-                          <div className="text-xs text-slate-500">{incident.unit} &middot; {incident.code}</div>
-                        </div>
-                        {incident.status === 'PROCESS' ? (
-                          <Badge>Dalam proses</Badge>
-                        ) : (
-                          <Badge>Selesai</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">{incident.issue}</p>
-                      <div className="text-xs text-slate-500 mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-                        <div>Dampak: {incident.impact}</div>
-                        <div className="tabular-nums">{incident.occurredAt}</div>
-                      </div>
+                  {incidents.length === 0 ? (
+                    <li className="py-8 text-center text-xs text-slate-400">
+                      Belum ada catatan gangguan operasional di database.
                     </li>
-                  ))}
+                  ) : (
+                    incidents.map((incident, idx) => (
+                      <li key={incident.id} className={`py-3 ${idx > 0 ? 'border-t border-slate-100' : ''}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="text-[13px] font-medium text-slate-900">{incident.equipment}</div>
+                            <div className="text-xs text-slate-500">{incident.unit} &middot; {incident.code}</div>
+                          </div>
+                          {incident.status === 'PROCESS' ? (
+                            <Badge>Dalam proses</Badge>
+                          ) : (
+                            <Badge>Selesai</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">{incident.issue}</p>
+                        <div className="text-xs text-slate-500 mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                          <div>Dampak: {incident.impact}</div>
+                          <div className="tabular-nums">{incident.occurredAt}</div>
+                        </div>
+                      </li>
+                    ))
+                  )}
                 </ul>
                 <div className="mx-5 mb-4 mt-1 px-3 py-2 rounded-lg bg-slate-50 text-xs text-slate-700 border border-slate-200 flex items-start gap-2">
                   <Info size={13} className="shrink-0 mt-0.5 text-slate-500" />
@@ -458,12 +585,12 @@ const ManagementDashboard = () => {
                     <h3 className={cardTitle}>Status unit pembangkit</h3>
                     <p className={cardSub}>Kapasitas terpasang 2 &times; 500 kW</p>
                   </div>
-                  <Badge>Sinkron</Badge>
+                  <span className="text-xs font-semibold text-slate-700">{totalKw > 0 ? 'Sinkron' : 'Standby'}</span>
                 </div>
                 <div className="mt-4 space-y-3.5">
                   {[
-                    { name: 'Unit 1', kw: executiveMetrics.plantStatus.unit1PowerKw, note: 'Bearing 76 °C, dipantau' },
-                    { name: 'Unit 2', kw: executiveMetrics.plantStatus.unit2PowerKw, note: 'Kondisi normal' }
+                    { name: 'Unit 1', kw: executiveMetrics.plantStatus.unit1PowerKw, note: summaryU1?.latest_entry?.notes || 'Kondisi operasional normal' },
+                    { name: 'Unit 2', kw: executiveMetrics.plantStatus.unit2PowerKw, note: summaryU2?.latest_entry?.notes || 'Kondisi operasional normal' }
                   ].map((u) => (
                     <div key={u.name}>
                       <div className="flex items-center justify-between text-xs">
@@ -491,7 +618,7 @@ const ManagementDashboard = () => {
                     <h3 className={cardTitle}>Telemetri SCADA per unit</h3>
                     <p className={cardSub}>Sinkron grid 20 kV</p>
                   </div>
-                  <Badge>Terhubung</Badge>
+                  <span className="text-xs font-semibold text-slate-700">Terhubung</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
@@ -506,46 +633,50 @@ const ManagementDashboard = () => {
                     <tbody className="divide-y divide-slate-100 tabular-nums">
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Status operasi</td>
-                        <td className="py-2 px-3 text-right"><Badge>Running</Badge></td>
-                        <td className="py-2 px-3 text-right"><Badge>Running</Badge></td>
+                        <td className="py-2 px-3 text-right font-semibold text-slate-700">{summaryU1?.unit?.current_status ?? (isLoading ? 'Memuat' : 'Standby')}</td>
+                        <td className="py-2 px-3 text-right font-semibold text-slate-700">{summaryU2?.unit?.current_status ?? (isLoading ? 'Memuat' : 'Standby')}</td>
                         <td className="py-2 px-4 text-slate-500">Sinkron grid</td>
                       </tr>
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Daya aktif (P)</td>
-                        <td className="py-2 px-3 text-right font-medium text-slate-900">475 kW</td>
-                        <td className="py-2 px-3 text-right font-medium text-slate-900">460 kW</td>
+                        <td className="py-2 px-3 text-right font-medium text-slate-900">{u1Kw > 0 ? `${u1Kw} kW` : '-'}</td>
+                        <td className="py-2 px-3 text-right font-medium text-slate-900">{u2Kw > 0 ? `${u2Kw} kW` : '-'}</td>
                         <td className="py-2 px-4 text-slate-500">Maks. 500 kW/unit</td>
                       </tr>
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Tegangan (V)</td>
-                        <td className="py-2 px-3 text-right text-slate-900">398 V</td>
-                        <td className="py-2 px-3 text-right text-slate-900">400 V</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU1?.latest_entry?.electrical?.voltage_v ? `${summaryU1.latest_entry.electrical.voltage_v} V` : '-'}</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU2?.latest_entry?.electrical?.voltage_v ? `${summaryU2.latest_entry.electrical.voltage_v} V` : '-'}</td>
                         <td className="py-2 px-4 text-slate-500">400 V &plusmn;5%</td>
                       </tr>
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Frekuensi (f)</td>
-                        <td className="py-2 px-3 text-right text-slate-900">50,02 Hz</td>
-                        <td className="py-2 px-3 text-right text-slate-900">50,02 Hz</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU1?.latest_entry?.electrical?.frequency_hz ? `${summaryU1.latest_entry.electrical.frequency_hz} Hz` : '-'}</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU2?.latest_entry?.electrical?.frequency_hz ? `${summaryU2.latest_entry.electrical.frequency_hz} Hz` : '-'}</td>
                         <td className="py-2 px-4 text-slate-500">50,00 &plusmn;0,2 Hz</td>
                       </tr>
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Debit air (Q)</td>
-                        <td className="py-2 px-3 text-right text-slate-900">2,51 m³/s</td>
-                        <td className="py-2 px-3 text-right text-slate-900">2,48 m³/s</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU1?.latest_entry?.hydraulic?.water_flow_m3_s ? `${summaryU1.latest_entry.hydraulic.water_flow_m3_s} m³/s` : '-'}</td>
+                        <td className="py-2 px-3 text-right text-slate-900">{summaryU2?.latest_entry?.hydraulic?.water_flow_m3_s ? `${summaryU2.latest_entry.hydraulic.water_flow_m3_s} m³/s` : '-'}</td>
                         <td className="py-2 px-4 text-slate-500">Desain 2,65 m³/s</td>
                       </tr>
                       <tr className="hover:bg-slate-50/70">
                         <td className="py-2 px-4 text-slate-700">Suhu bearing</td>
                         <td className="py-2 px-3 text-right">
                           <span className="inline-flex items-center gap-1.5">
-                            <span className="font-medium text-slate-900">76 °C</span>
-                            <Badge>Waspada</Badge>
+                            <span className="font-medium text-slate-900">
+                              {summaryU1?.latest_entry?.mechanical?.bearing_temp_c ? `${summaryU1.latest_entry.mechanical.bearing_temp_c} °C` : '-'}
+                            </span>
+                            {summaryU1?.latest_entry?.mechanical?.bearing_temp_c ? <Badge>Normal</Badge> : null}
                           </span>
                         </td>
                         <td className="py-2 px-3 text-right">
                           <span className="inline-flex items-center gap-1.5">
-                            <span className="text-slate-900">68 °C</span>
-                            <Badge>Normal</Badge>
+                            <span className="text-slate-900">
+                              {summaryU2?.latest_entry?.mechanical?.bearing_temp_c ? `${summaryU2.latest_entry.mechanical.bearing_temp_c} °C` : '-'}
+                            </span>
+                            {summaryU2?.latest_entry?.mechanical?.bearing_temp_c ? <Badge>Normal</Badge> : null}
                           </span>
                         </td>
                         <td className="py-2 px-4 text-slate-500">Alarm trip &gt;85 °C</td>
@@ -565,28 +696,30 @@ const ManagementDashboard = () => {
                   <div className="py-3">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-[13px] font-medium text-slate-900">Suplai energi dan kontrak PLN</h4>
-                      <Badge>Terpenuhi</Badge>
+                      <Badge>{totalEnergyMwh > 0 ? 'Terpenuhi' : 'Belum Ada Data'}</Badge>
                     </div>
                     <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
-                      Realisasi <span className="font-medium text-slate-900">558,5 MWh</span>, 7,4% di atas target PPA. Debit hulu stabil rata-rata 2,45 m³/s.
+                      Realisasi <span className="font-medium text-slate-900">{totalEnergyMwh} MWh</span> dari target bulanan PPA 520 MWh.
                     </p>
                   </div>
                   <div className="py-3">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-[13px] font-medium text-slate-900">Keandalan mesin dan aset</h4>
-                      <Badge>Risiko rendah</Badge>
+                      <Badge>{currentAf >= 95 ? 'Risiko rendah' : currentAf === 0 ? 'Standby' : 'Perlu perhatian'}</Badge>
                     </div>
                     <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
-                      AF <span className="font-medium text-slate-900">98,1%</span> (target &gt;95%). Downtime 12 jam hanya untuk pemeliharaan terencana, tanpa trip mendadak.
+                      AF <span className="font-medium text-slate-900">{currentAf}%</span> (target &gt;95%). Total jam operasi: {performance?.metrics?.total_running_hours ?? 0} jam.
                     </p>
                   </div>
                   <div className="py-3">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-[13px] font-medium text-slate-900">Tindak lanjut manajemen</h4>
-                      <Badge>Perlu persetujuan</Badge>
+                      <Badge>{executiveMetrics.incidentsSummary.activeProcessCount > 0 ? 'Perlu tindakan' : 'Normal'}</Badge>
                     </div>
                     <p className="text-xs text-slate-700 leading-relaxed mt-1.5">
-                      Dukung jadwal preventive maintenance seal MIV pada pekan ke-2 Oktober, sebelum debit puncak musim hujan.
+                      {executiveMetrics.incidentsSummary.activeProcessCount > 0
+                        ? `Terdapat ${executiveMetrics.incidentsSummary.activeProcessCount} gangguan aktif yang memerlukan perhatian teknis.`
+                        : 'Tidak ada gangguan aktif yang memerlukan tindak lanjut darurat.'}
                     </p>
                   </div>
                 </div>

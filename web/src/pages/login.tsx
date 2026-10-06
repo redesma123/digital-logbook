@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { User, Lock, Eye, EyeOff } from 'lucide-react'
+import { User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { authApi } from '@/api/auth.api'
 import logoImage from '@/assets/logo.png' 
 import bgImage from '@/assets/background.png' 
 
@@ -19,6 +20,8 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
@@ -30,25 +33,34 @@ export default function LoginPage() {
     }
   })
 
-  const onSubmit = (data: LoginFormValues) => {
-    console.log('Login submitted', data);
-    const uname = data.username.toLowerCase().trim();
+  const onSubmit = async (data: LoginFormValues) => {
+    setAuthError(null);
+    setIsLoading(true);
 
-    // Deteksi akun peran Manajemen
-    if (
-      uname.includes('manajemen') ||
-      uname.includes('management') ||
-      uname.includes('manager') ||
-      uname.includes('direksi')
-    ) {
-      localStorage.setItem('user_role', 'MANAJEMEN');
-      localStorage.setItem('user_name', 'Ir. Bambang Trihatmojo');
-      navigate('/manajemen/dashboard');
-    } else {
-      // Default: Supervisor / Operator Dashboard
-      localStorage.setItem('user_role', 'SUPERVISOR');
-      localStorage.setItem('user_name', 'Agus Setiawan');
-      navigate('/dashboard');
+    try {
+      const result = await authApi.login(data.username, data.password);
+      
+      // Simpan kredensial token dan profil
+      localStorage.setItem('access_token', result.accessToken);
+      localStorage.setItem('refresh_token', result.refreshToken);
+      localStorage.setItem('user_role', result.user.role);
+      localStorage.setItem('user_name', result.user.fullName);
+      localStorage.setItem('user_id', String(result.user.id));
+
+      if (result.user.role === 'MANAGEMENT') {
+        navigate('/manajemen/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setAuthError(axiosErr.response?.data?.message || 'Login gagal. Periksa username dan password.');
+      } else {
+        setAuthError('Tidak dapat terhubung ke server backend.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -82,6 +94,13 @@ export default function LoginPage() {
 
         {/* Input Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full px-2">
+          {authError && (
+            <div className="flex items-center gap-2 p-3 text-xs rounded-lg bg-red-50 text-red-700 border border-red-200">
+              <AlertCircle size={16} className="shrink-0 text-red-500" />
+              <span>{authError}</span>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Input 
               {...register('username')}
@@ -128,8 +147,12 @@ export default function LoginPage() {
           </div>
 
           <div className="pt-3">
-            <Button type="submit" className="text-base h-12 rounded-[8px] font-bold">
-              LOGIN
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="text-base h-12 rounded-[8px] font-bold w-full disabled:opacity-60"
+            >
+              {isLoading ? 'MEMPROSES...' : 'LOGIN'}
             </Button>
           </div>
         </form>

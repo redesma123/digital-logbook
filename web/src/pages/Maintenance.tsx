@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { Button } from '../components/ui/button';
@@ -20,6 +20,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import { maintenanceApi, exportApi } from '@/api';
 
 export type MaintenanceStatus = 'PLAN' | 'PROCESS' | 'COMPLETE';
 
@@ -52,174 +53,18 @@ export interface MaintenanceRecord {
   histories: MaintenanceStatusHistory[];
 }
 
-const initialMaintenanceRecords: MaintenanceRecord[] = [
-  {
-    id: 1,
-    code: 'MNT-2026-001',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    equipment: 'Main Inlet Valve (MIV) & Counterweight',
-    work_type: 'Preventive Maintenance (Berkala 3 Bulanan)',
-    description: 'Penggantian hydraulic oil filter, inspeksi seal karet katup penutup utama, dan uji fungsional emergency drop counterweight.',
-    technician: 'Tim Mekanik PLTMH (Koordinator: Rudi Hartono)',
-    planned_date: '2026-10-06',
-    status: 'PLAN',
-    created_by: 'Budi Santoso (Operator)',
-    created_at: '2026-10-03 09:15',
-    has_attachment: false,
-    histories: [
-      {
-        id: 101,
-        from_status: null,
-        to_status: 'PLAN',
-        changed_by: 'Budi Santoso',
-        role: 'OPERATOR',
-        changed_at: '2026-10-03 09:15',
-        notes: 'Rencana pemeliharaan rutin MIV dijadwalkan sesuai buku manual operasional.'
-      }
-    ]
-  },
-  {
-    id: 2,
-    code: 'MNT-2026-002',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    equipment: 'Generator Thrust Bearing & Lube System',
-    work_type: 'Corrective Maintenance (Inspeksi & Ganti Filter)',
-    description: 'Pembersihan strainer oil filter jalur sirkulasi oli dan penambahan pelumas darurat pasca indikasi kenaikan suhu bearing 86°C.',
-    technician: 'Tim Mekanik & Spesialis Vendor Hydro',
-    planned_date: '2026-10-02',
-    status: 'PROCESS',
-    created_by: 'Ahmad Hidayat (Operator)',
-    created_at: '2026-10-01 15:30',
-    has_attachment: true,
-    attachment_name: 'kondisi_oil_filter_bearing.jpg',
-    attachment_size: '1.8 MB',
-    histories: [
-      {
-        id: 102,
-        from_status: null,
-        to_status: 'PLAN',
-        changed_by: 'Ahmad Hidayat',
-        role: 'OPERATOR',
-        changed_at: '2026-10-01 15:30',
-        notes: 'Dibuat rencana tindakan perbaikan setelah penanganan sementara gangguan suhu bearing.'
-      },
-      {
-        id: 103,
-        from_status: 'PLAN',
-        to_status: 'PROCESS',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-10-02 08:30',
-        notes: 'SPK pekerjaan disetujui. Tim mekanik mulai membongkar casing filter oli dan flushing pelumas.'
-      }
-    ]
-  },
-  {
-    id: 3,
-    code: 'MNT-2026-003',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    equipment: 'Automatic Voltage Regulator (AVR) & Exciter',
-    work_type: 'Kalibrasi & Pengujian Proteksi',
-    description: 'Kalibrasi ulang modul sensing tegangan AVR, penggantian resistor limiter, dan verifikasi kestabilan eksitasi beban penuh 400 kW.',
-    technician: 'Tim Elektrikal & Instrumentasi',
-    planned_date: '2026-09-30',
-    status: 'COMPLETE',
-    created_by: 'Hendra Wijaya (Supervisor)',
-    created_at: '2026-09-29 20:00',
-    has_attachment: true,
-    attachment_name: 'laporan_uji_avr_stabil.png',
-    attachment_size: '920 KB',
-    histories: [
-      {
-        id: 104,
-        from_status: null,
-        to_status: 'PLAN',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-29 20:00',
-        notes: 'Rencana kalibrasi darurat sistem eksitasi AVR.'
-      },
-      {
-        id: 105,
-        from_status: 'PLAN',
-        to_status: 'PROCESS',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-30 08:30',
-        notes: 'Pekerjaan penggantian kartu elektronik AVR dan pengujian isolasi kabel dimulai.'
-      },
-      {
-        id: 106,
-        from_status: 'PROCESS',
-        to_status: 'COMPLETE',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-30 16:45',
-        notes: 'Uji sinkronisasi grid PLN berhasil sempurna. Tegangan stabil 398V, proteksi normal.'
-      }
-    ]
-  },
-  {
-    id: 4,
-    code: 'MNT-2026-004',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    equipment: 'Trash Rack Cleaner & Water Intake Screen',
-    work_type: 'Preventive Maintenance (Pembersihan Berkala)',
-    description: 'Pembersihan akumulasi sedimen lumpur dan serasah ranting di intake gate serta pelumasan rel transmisi mekanis trash rake.',
-    technician: 'Tim Sipil & Operasional Intake',
-    planned_date: '2026-09-24',
-    status: 'COMPLETE',
-    created_by: 'Siti Rahma (Operator)',
-    created_at: '2026-09-23 11:00',
-    has_attachment: true,
-    attachment_name: 'intake_screen_bersih.jpg',
-    attachment_size: '2.4 MB',
-    histories: [
-      {
-        id: 107,
-        from_status: null,
-        to_status: 'PLAN',
-        changed_by: 'Siti Rahma',
-        role: 'OPERATOR',
-        changed_at: '2026-09-23 11:00',
-        notes: 'Jadwal rutin mingguan pembersihan intake air kolam penenang.'
-      },
-      {
-        id: 108,
-        from_status: 'PLAN',
-        to_status: 'PROCESS',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-24 09:00',
-        notes: 'Pintu intake ditutup bertahap untuk pembersihan manual sedimentasi.'
-      },
-      {
-        id: 109,
-        from_status: 'PROCESS',
-        to_status: 'COMPLETE',
-        changed_by: 'Hendra Wijaya',
-        role: 'SUPERVISOR',
-        changed_at: '2026-09-24 14:30',
-        notes: 'Pembersihan tuntas, debit air normal kembali dan saringan sampah berfungsi lancar.'
-      }
-    ]
-  }
-];
-
 const Maintenance = () => {
-  const [records, setRecords] = useState<MaintenanceRecord[]>(initialMaintenanceRecords);
+  const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Peran pengguna aktif sesuai sesi autentikasi (Supervisor)
-  const currentRole: 'SUPERVISOR' | 'OPERATOR' = 'SUPERVISOR';
+  const currentRole = (localStorage.getItem('user_role') === 'OPERATOR' ? 'OPERATOR' : 'SUPERVISOR') as 'SUPERVISOR' | 'OPERATOR';
 
   // Modal State
   const [detailRecord, setDetailRecord] = useState<MaintenanceRecord | null>(null);
@@ -236,6 +81,52 @@ const Maintenance = () => {
   const [formPlannedDate, setFormPlannedDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [formDescription, setFormDescription] = useState<string>('');
   const [formAttachmentName, setFormAttachmentName] = useState<string>('');
+
+  // Fetch Data Maintenance dari Backend
+  const fetchMaintenanceRecords = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await maintenanceApi.list({ limit: 50 });
+      if (res && res.data && res.data.length > 0) {
+        const mapped: MaintenanceRecord[] = res.data.map((item) => ({
+          id: item.id,
+          code: `MNT-2026-${String(item.id).padStart(3, '0')}`,
+          unit_id: item.unit_id,
+          unit_name: item.unit?.name || (item.unit_id === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)'),
+          equipment: item.equipment,
+          work_type: item.work_type,
+          description: item.description,
+          technician: item.technician || 'Tim Internal',
+          planned_date: new Date(item.scheduled_date).toISOString().slice(0, 10),
+          status: item.status,
+          created_by: item.created_by?.full_name || 'Petugas',
+          created_at: new Date(item.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+          has_attachment: false,
+          histories: item.status_histories?.map((h) => ({
+            id: h.id,
+            from_status: h.from_status,
+            to_status: h.to_status,
+            changed_by: h.changer?.full_name || 'Supervisor',
+            role: 'SUPERVISOR' as const,
+            changed_at: new Date(h.changed_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+            notes: h.notes || 'Pembaruan status'
+          })) || []
+        }));
+        setRecords(mapped);
+      } else {
+        setRecords([]);
+      }
+    } catch (err) {
+      console.warn('Backend maintenance belum ada data atau gagal:', err);
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMaintenanceRecords();
+  }, [fetchMaintenanceRecords]);
 
   // Filter Data Maintenance
   const filteredRecords = records.filter((item) => {
@@ -272,47 +163,60 @@ const Maintenance = () => {
   const completeCount = records.filter((r) => r.status === 'COMPLETE').length;
 
   // Handle Create Maintenance Plan (SRS F-23, F-24)
-  const handleCreateRecord = (e: React.FormEvent) => {
+  const handleCreateRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formEquipment.trim() || !formWorkType.trim() || !formDescription.trim()) {
       alert('Mohon lengkapi bagian peralatan, jenis pekerjaan, dan deskripsi rencana maintenance.');
       return;
     }
 
-    const newId = records.length + 1;
-    const newCode = `MNT-2026-${String(newId).padStart(3, '0')}`;
-    const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    try {
+      await maintenanceApi.create({
+        unit_id: formUnit,
+        equipment: formEquipment,
+        work_type: formWorkType,
+        description: formDescription,
+        technician: formTechnician,
+        scheduled_date: new Date(formPlannedDate).toISOString(),
+      });
+      await fetchMaintenanceRecords();
+    } catch {
+      // Fallback lokal
+      const newId = records.length + 1;
+      const newCode = `MNT-2026-${String(newId).padStart(3, '0')}`;
+      const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
 
-    const newRecord: MaintenanceRecord = {
-      id: newId,
-      code: newCode,
-      unit_id: formUnit,
-      unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
-      equipment: formEquipment,
-      work_type: formWorkType,
-      description: formDescription,
-      technician: formTechnician || 'Tim Pemeliharaan Internal',
-      planned_date: formPlannedDate,
-      status: 'PLAN',
-      created_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya (Supervisor)' : 'Budi Santoso (Operator)',
-      created_at: nowStr,
-      has_attachment: !!formAttachmentName,
-      attachment_name: formAttachmentName || undefined,
-      attachment_size: formAttachmentName ? '1.5 MB' : undefined,
-      histories: [
-        {
-          id: Date.now(),
-          from_status: null,
-          to_status: 'PLAN',
-          changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
-          role: currentRole,
-          changed_at: nowStr,
-          notes: 'Rencana pekerjaan maintenance baru dibuat.'
-        }
-      ]
-    };
+      const newRecord: MaintenanceRecord = {
+        id: newId,
+        code: newCode,
+        unit_id: formUnit,
+        unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
+        equipment: formEquipment,
+        work_type: formWorkType,
+        description: formDescription,
+        technician: formTechnician || 'Tim Pemeliharaan Internal',
+        planned_date: formPlannedDate,
+        status: 'PLAN',
+        created_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya (Supervisor)' : 'Budi Santoso (Operator)',
+        created_at: nowStr,
+        has_attachment: !!formAttachmentName,
+        attachment_name: formAttachmentName || undefined,
+        attachment_size: formAttachmentName ? '1.5 MB' : undefined,
+        histories: [
+          {
+            id: Date.now(),
+            from_status: null,
+            to_status: 'PLAN',
+            changed_by: currentRole === 'SUPERVISOR' ? 'Hendra Wijaya' : 'Budi Santoso',
+            role: currentRole,
+            changed_at: nowStr,
+            notes: 'Rencana pekerjaan maintenance baru dibuat.'
+          }
+        ]
+      };
+      setRecords([newRecord, ...records]);
+    }
 
-    setRecords([newRecord, ...records]);
     setIsCreateOpen(false);
 
     // Reset Form
@@ -336,39 +240,56 @@ const Maintenance = () => {
   };
 
   // Handle Save Edit
-  const handleUpdateRecord = (e: React.FormEvent) => {
+  const handleUpdateRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecord) return;
 
-    const updated: MaintenanceRecord = {
-      ...editingRecord,
-      unit_id: formUnit,
-      unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
-      equipment: formEquipment,
-      work_type: formWorkType,
-      technician: formTechnician,
-      planned_date: formPlannedDate,
-      description: formDescription,
-      has_attachment: !!formAttachmentName,
-      attachment_name: formAttachmentName || undefined,
-      attachment_size: formAttachmentName ? editingRecord.attachment_size || '1.5 MB' : undefined
-    };
+    try {
+      await maintenanceApi.update(editingRecord.id, {
+        unit_id: formUnit,
+        equipment: formEquipment,
+        work_type: formWorkType,
+        description: formDescription,
+        technician: formTechnician,
+        scheduled_date: new Date(formPlannedDate).toISOString(),
+      });
+      await fetchMaintenanceRecords();
+    } catch {
+      const updated: MaintenanceRecord = {
+        ...editingRecord,
+        unit_id: formUnit,
+        unit_name: formUnit === 1 ? 'Unit 1 (PLTMH)' : 'Unit 2 (PLTMH)',
+        equipment: formEquipment,
+        work_type: formWorkType,
+        technician: formTechnician,
+        planned_date: formPlannedDate,
+        description: formDescription,
+        has_attachment: !!formAttachmentName,
+        attachment_name: formAttachmentName || undefined,
+        attachment_size: formAttachmentName ? editingRecord.attachment_size || '1.5 MB' : undefined
+      };
 
-    setRecords(records.map((r) => (r.id === updated.id ? updated : r)));
-    if (detailRecord && detailRecord.id === updated.id) {
-      setDetailRecord(updated);
+      setRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+      if (detailRecord && detailRecord.id === updated.id) {
+        setDetailRecord(updated);
+      }
     }
     setEditingRecord(null);
   };
 
   // Handle Delete Record (Supervisor only, RULES.md & SRS F-26)
-  const handleDeleteRecord = (id: number) => {
+  const handleDeleteRecord = async (id: number) => {
     if (currentRole !== 'SUPERVISOR') {
       alert('Akses Ditolak: Hanya Supervisor yang berwenang menghapus data maintenance.');
       return;
     }
     if (window.confirm('Apakah Anda yakin ingin menghapus data pemeliharaan ini? Data akan menerapkan soft delete untuk integritas historis.')) {
-      setRecords(records.filter((r) => r.id !== id));
+      try {
+        await maintenanceApi.remove(id);
+        await fetchMaintenanceRecords();
+      } catch {
+        setRecords(records.filter((r) => r.id !== id));
+      }
       if (detailRecord?.id === id) {
         setDetailRecord(null);
       }
@@ -378,7 +299,7 @@ const Maintenance = () => {
   // Handle Status Transition (Strictly adheres to RULES.md 1.4 & SRS F-25/F-26):
   // Alur: PLAN -> PROCESS -> COMPLETE
   // Hanya Supervisor yang berwenang mengubah status maintenance.
-  const handleUpdateStatus = (targetStatus: MaintenanceStatus) => {
+  const handleUpdateStatus = async (targetStatus: MaintenanceStatus) => {
     if (!detailRecord) return;
 
     if (currentRole !== 'SUPERVISOR') {
@@ -391,75 +312,54 @@ const Maintenance = () => {
       return;
     }
 
-    const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    const newHistory: MaintenanceStatusHistory = {
-      id: Date.now(),
-      from_status: detailRecord.status,
-      to_status: targetStatus,
-      changed_by: 'Hendra Wijaya',
-      role: 'SUPERVISOR',
-      changed_at: now,
-      notes: statusNote
-    };
+    try {
+      await maintenanceApi.changeStatus(detailRecord.id, targetStatus, statusNote);
+      await fetchMaintenanceRecords();
+    } catch {
+      const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const newHistory: MaintenanceStatusHistory = {
+        id: Date.now(),
+        from_status: detailRecord.status,
+        to_status: targetStatus,
+        changed_by: 'Hendra Wijaya',
+        role: 'SUPERVISOR',
+        changed_at: now,
+        notes: statusNote
+      };
 
-    const updated: MaintenanceRecord = {
-      ...detailRecord,
-      status: targetStatus,
-      histories: [...detailRecord.histories, newHistory]
-    };
+      const updated: MaintenanceRecord = {
+        ...detailRecord,
+        status: targetStatus,
+        histories: [...detailRecord.histories, newHistory]
+      };
 
-    setRecords(records.map((r) => (r.id === updated.id ? updated : r)));
-    setDetailRecord(updated);
+      setRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+      setDetailRecord(updated);
+    }
     setStatusNote('');
   };
 
-  // Export to CSV / Excel (F-44, RULES.md)
-  const handleExportCSV = () => {
-    const headers = ['No Insiden/Kode', 'Unit', 'Peralatan', 'Jenis Pekerjaan', 'Teknisi', 'Jadwal Rencana', 'Status', 'Pelapor/Pembuat', 'Deskripsi'];
-    const rows = filteredRecords.map((r) => [
-      `"${r.code}"`,
-      `"${r.unit_name}"`,
-      `"${r.equipment}"`,
-      `"${r.work_type}"`,
-      `"${r.technician}"`,
-      `"${r.planned_date}"`,
-      `"${r.status}"`,
-      `"${r.created_by}"`,
-      `"${r.description.replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Rekap_Maintenance_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Export to Excel / CSV via backend
+  const handleExportMaintenance = async (format: 'xlsx' | 'csv' = 'xlsx') => {
+    setIsExporting(true);
+    try {
+      await exportApi.downloadMaintenance({ format });
+    } catch (err) {
+      alert('Gagal mengunduh file laporan pemeliharaan.');
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  // Badge Status sesuai gaya Management Dashboard:
-  // Netral / monokrom, tanpa warna mencolok dan tanpa titik bulat
   const getStatusBadge = (status: MaintenanceStatus) => {
     switch (status) {
       case 'PLAN':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
-            PLAN
-          </span>
-        );
+        return <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">PLAN</span>;
       case 'PROCESS':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
-            PROCESS
-          </span>
-        );
+        return <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">PROCESS</span>;
       case 'COMPLETE':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
-            COMPLETE
-          </span>
-        );
+        return <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">COMPLETE</span>;
     }
   };
 
@@ -489,16 +389,26 @@ const Maintenance = () => {
               {/* Action Buttons */}
               <div className="flex items-center flex-wrap gap-2">
                 <Button
-                  onClick={handleExportCSV}
-                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center"
+                  disabled={isExporting}
+                  onClick={() => handleExportMaintenance('xlsx')}
+                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center cursor-pointer"
                 >
-                  <FileSpreadsheet size={14} className="mr-1.5 text-slate-600" />
-                  Ekspor CSV
+                  <FileSpreadsheet size={14} className="mr-1.5 text-emerald-600" />
+                  {isExporting ? 'Mengunduh...' : 'Ekspor Excel'}
+                </Button>
+
+                <Button
+                  disabled={isLoading}
+                  onClick={fetchMaintenanceRecords}
+                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center cursor-pointer"
+                >
+                  <RefreshCw size={14} className={`mr-1.5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+                  {isLoading ? 'Menyinkronkan...' : 'Segarkan'}
                 </Button>
 
                 <Button
                   onClick={() => setIsCreateOpen(true)}
-                  className="bg-[#0F4C81] hover:bg-[#0c3d66] text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center"
+                  className="bg-[#0F4C81] hover:bg-[#0c3d66] text-white font-medium text-xs h-8 px-3 rounded-lg shadow-xs flex items-center cursor-pointer"
                 >
                   <Plus size={14} className="mr-1.5" />
                   Buat Rencana Maintenance

@@ -1,7 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { Button } from '../components/ui/button';
+import { unitApi, UnitItem } from '../api/unit.api';
+import { analyticsApi, PerformanceAnalytics } from '../api/analytics.api';
+import { logbookApi } from '../api/logbook.api';
 import {
   Zap,
   Filter,
@@ -41,193 +44,104 @@ export interface ProductionRecord {
   status: 'OPTIMAL' | 'NORMAL' | 'MAINTENANCE';
 }
 
-const hourlyTodayData = [
-  { time: '00:00', unit1: 420, unit2: 410, totalEnergy: 830, target: 800, flow: 2.25, power: 830 },
-  { time: '02:00', unit1: 415, unit2: 410, totalEnergy: 825, target: 800, flow: 2.22, power: 825 },
-  { time: '04:00', unit1: 425, unit2: 420, totalEnergy: 845, target: 800, flow: 2.28, power: 845 },
-  { time: '06:00', unit1: 440, unit2: 435, totalEnergy: 875, target: 820, flow: 2.38, power: 875 },
-  { time: '08:00', unit1: 460, unit2: 450, totalEnergy: 910, target: 850, flow: 2.46, power: 910 },
-  { time: '10:00', unit1: 475, unit2: 470, totalEnergy: 945, target: 880, flow: 2.55, power: 945 },
-  { time: '12:00', unit1: 485, unit2: 480, totalEnergy: 965, target: 880, flow: 2.60, power: 965 },
-  { time: '14:00', unit1: 470, unit2: 465, totalEnergy: 935, target: 860, flow: 2.52, power: 935 },
-  { time: '16:00', unit1: 455, unit2: 450, totalEnergy: 905, target: 850, flow: 2.45, power: 905 },
-  { time: '18:00', unit1: 465, unit2: 460, totalEnergy: 925, target: 860, flow: 2.48, power: 925 },
-  { time: '20:00', unit1: 450, unit2: 445, totalEnergy: 895, target: 840, flow: 2.41, power: 895 },
-  { time: '22:00', unit1: 435, unit2: 430, totalEnergy: 865, target: 820, flow: 2.32, power: 865 },
-];
 
-const weekly7DaysData = [
-  { date: '29 Sep', unit1: 9800, unit2: 9600, totalEnergy: 19400, target: 19000, avgFlow: 2.35, cf: 80.8 },
-  { date: '30 Sep', unit1: 10100, unit2: 9900, totalEnergy: 20000, target: 19000, avgFlow: 2.42, cf: 83.3 },
-  { date: '01 Okt', unit1: 10400, unit2: 10200, totalEnergy: 20600, target: 19500, avgFlow: 2.51, cf: 85.8 },
-  { date: '02 Okt', unit1: 8900, unit2: 9500, totalEnergy: 18400, target: 19500, avgFlow: 2.20, cf: 76.7 },
-  { date: '03 Okt', unit1: 10500, unit2: 10300, totalEnergy: 20800, target: 19500, avgFlow: 2.54, cf: 86.7 },
-  { date: '04 Okt', unit1: 10700, unit2: 10500, totalEnergy: 21200, target: 19500, avgFlow: 2.58, cf: 88.3 },
-  { date: '05 Okt', unit1: 9600, unit2: 9400, totalEnergy: 19000, target: 19000, avgFlow: 2.45, cf: 79.2 },
-];
-
-const monthly30DaysData = [
-  { label: 'Minggu 1', unit1: 68500, unit2: 67200, totalEnergy: 135700, target: 130000, avgFlow: 2.38, cf: 80.8 },
-  { label: 'Minggu 2', unit1: 71200, unit2: 69800, totalEnergy: 141000, target: 130000, avgFlow: 2.46, cf: 83.9 },
-  { label: 'Minggu 3', unit1: 69400, unit2: 68100, totalEnergy: 137500, target: 130000, avgFlow: 2.41, cf: 81.8 },
-  { label: 'Minggu 4', unit1: 72800, unit2: 71500, totalEnergy: 144300, target: 130000, avgFlow: 2.52, cf: 85.9 },
-];
-
-const yearlyMonthsData = [
-  { label: 'Jan', unit1: 295, unit2: 288, totalEnergy: 583, target: 560, avgFlow: 2.45, cf: 78.4 },
-  { label: 'Feb', unit1: 275, unit2: 270, totalEnergy: 545, target: 510, avgFlow: 2.42, cf: 81.1 },
-  { label: 'Mar', unit1: 310, unit2: 305, totalEnergy: 615, target: 580, avgFlow: 2.56, cf: 82.7 },
-  { label: 'Apr', unit1: 285, unit2: 280, totalEnergy: 565, target: 550, avgFlow: 2.39, cf: 78.5 },
-  { label: 'Mei', unit1: 260, unit2: 255, totalEnergy: 515, target: 520, avgFlow: 2.28, cf: 69.2 },
-  { label: 'Jun', unit1: 245, unit2: 240, totalEnergy: 485, target: 500, avgFlow: 2.15, cf: 67.4 },
-  { label: 'Jul', unit1: 230, unit2: 235, totalEnergy: 465, target: 480, avgFlow: 2.05, cf: 62.5 },
-  { label: 'Ags', unit1: 220, unit2: 225, totalEnergy: 445, target: 470, avgFlow: 1.98, cf: 59.8 },
-  { label: 'Sep', unit1: 270, unit2: 268, totalEnergy: 538, target: 530, avgFlow: 2.30, cf: 74.7 },
-  { label: 'Okt', unit1: 142, unit2: 139, totalEnergy: 281, target: 270, avgFlow: 2.48, cf: 81.5 },
-];
-
-const initialTableRecords: ProductionRecord[] = [
-  {
-    id: 1,
-    date: '2026-10-05',
-    timeSlot: 'Shift 2 (14:00 - 22:00)',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 465,
-    energy_kwh: 3720,
-    avg_flow_m3s: 2.51,
-    water_utilization_pct: 94.7,
-    capacity_factor_pct: 93.0,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3906000,
-    status: 'OPTIMAL'
-  },
-  {
-    id: 2,
-    date: '2026-10-05',
-    timeSlot: 'Shift 2 (14:00 - 22:00)',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 458,
-    energy_kwh: 3664,
-    avg_flow_m3s: 2.48,
-    water_utilization_pct: 93.6,
-    capacity_factor_pct: 91.6,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3847200,
-    status: 'OPTIMAL'
-  },
-  {
-    id: 3,
-    date: '2026-10-05',
-    timeSlot: 'Shift 1 (06:00 - 14:00)',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 470,
-    energy_kwh: 3760,
-    avg_flow_m3s: 2.54,
-    water_utilization_pct: 95.8,
-    capacity_factor_pct: 94.0,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3948000,
-    status: 'OPTIMAL'
-  },
-  {
-    id: 4,
-    date: '2026-10-05',
-    timeSlot: 'Shift 1 (06:00 - 14:00)',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 462,
-    energy_kwh: 3696,
-    avg_flow_m3s: 2.50,
-    water_utilization_pct: 94.3,
-    capacity_factor_pct: 92.4,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3880800,
-    status: 'OPTIMAL'
-  },
-  {
-    id: 5,
-    date: '2026-10-04',
-    timeSlot: 'Shift 3 (22:00 - 06:00)',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 430,
-    energy_kwh: 3440,
-    avg_flow_m3s: 2.34,
-    water_utilization_pct: 88.3,
-    capacity_factor_pct: 86.0,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3612000,
-    status: 'NORMAL'
-  },
-  {
-    id: 6,
-    date: '2026-10-04',
-    timeSlot: 'Shift 3 (22:00 - 06:00)',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 425,
-    energy_kwh: 3400,
-    avg_flow_m3s: 2.30,
-    water_utilization_pct: 86.8,
-    capacity_factor_pct: 85.0,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3570000,
-    status: 'NORMAL'
-  },
-  {
-    id: 7,
-    date: '2026-10-02',
-    timeSlot: 'Shift 2 (14:00 - 22:00)',
-    unit_id: 1,
-    unit_name: 'Unit 1 (PLTMH)',
-    running_hours: 5.5,
-    avg_power_kw: 320,
-    energy_kwh: 1760,
-    avg_flow_m3s: 1.85,
-    water_utilization_pct: 69.8,
-    capacity_factor_pct: 44.0,
-    availability_pct: 68.7,
-    revenue_estimation_idr: 1848000,
-    status: 'MAINTENANCE'
-  },
-  {
-    id: 8,
-    date: '2026-10-02',
-    timeSlot: 'Shift 2 (14:00 - 22:00)',
-    unit_id: 2,
-    unit_name: 'Unit 2 (PLTMH)',
-    running_hours: 8.0,
-    avg_power_kw: 445,
-    energy_kwh: 3560,
-    avg_flow_m3s: 2.40,
-    water_utilization_pct: 90.6,
-    capacity_factor_pct: 89.0,
-    availability_pct: 100.0,
-    revenue_estimation_idr: 3738000,
-    status: 'OPTIMAL'
-  }
-];
 
 const ProduksiEnergi = () => {
+  const [units, setUnits] = useState<UnitItem[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string>('ALL');
   const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'year'>('7d');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [searchTableQuery, setSearchTableQuery] = useState<string>('');
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<ProductionRecord | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<PerformanceAnalytics | null>(null);
+  const [tableRecords, setTableRecords] = useState<ProductionRecord[]>([]);
+
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        const data = await unitApi.list();
+        if (data && data.length > 0) {
+          setUnits(data);
+        }
+      } catch (err) {
+        console.error('Gagal mengambil daftar unit:', err);
+      }
+    };
+    fetchUnits();
+  }, []);
+
+  useEffect(() => {
+    const fetchLogbook = async () => {
+      try {
+        const res = await logbookApi.list({ limit: 100 });
+        if (res && res.data && res.data.length > 0) {
+          const mapped: ProductionRecord[] = res.data.map((item) => {
+            const runningHours = item.running_hours ?? 0;
+            const avgPower = item.params_electrical?.active_power_kw ?? 0;
+            const energyKwh = item.params_electrical?.energy_production_kwh ?? (runningHours * avgPower);
+            const avgFlow = item.params_hydraulic?.water_flow_m3_s ?? 0;
+            const capacityKw = 500;
+            const cf = runningHours > 0 ? (energyKwh / (capacityKw * 8)) * 100 : 0;
+            const waterUtil = (avgFlow / 2.65) * 100;
+            return {
+              id: item.id,
+              date: item.date ? item.date.split('T')[0] : '-',
+              timeSlot: item.shift ? `Shift ${item.shift}` : '-',
+              unit_id: item.unit_id,
+              unit_name: item.unit?.name || `Unit ${item.unit_id}`,
+              running_hours: runningHours,
+              avg_power_kw: avgPower,
+              energy_kwh: energyKwh,
+              avg_flow_m3s: avgFlow,
+              water_utilization_pct: Number(waterUtil.toFixed(1)),
+              capacity_factor_pct: Number(cf.toFixed(1)),
+              availability_pct: runningHours > 0 ? Number(((runningHours / 8) * 100).toFixed(1)) : 0,
+              revenue_estimation_idr: Math.round(energyKwh * 1050),
+              status: item.unit_status === 'RUNNING' ? 'OPTIMAL' : item.unit_status === 'STANDBY' ? 'NORMAL' : 'MAINTENANCE',
+            };
+          });
+          setTableRecords(mapped);
+        } else {
+          setTableRecords([]);
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data rekap logbook:', err);
+        setTableRecords([]);
+      }
+    };
+    fetchLogbook();
+  }, []);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (selectedUnit === 'ALL') return;
+      try {
+        const unitId = Number(selectedUnit);
+        if (isNaN(unitId)) return;
+        const now = new Date();
+        const to = now.toISOString().split('T')[0];
+        const fromDateObj = new Date();
+        if (timePeriod === 'today') fromDateObj.setDate(now.getDate() - 1);
+        else if (timePeriod === '7d') fromDateObj.setDate(now.getDate() - 7);
+        else if (timePeriod === '30d') fromDateObj.setDate(now.getDate() - 30);
+        else fromDateObj.setDate(now.getDate() - 365);
+        const from = fromDateObj.toISOString().split('T')[0];
+
+        const res = await analyticsApi.getPerformance(unitId, from, to);
+        if (res) {
+          setAnalyticsData(res);
+        }
+      } catch {
+        setAnalyticsData(null);
+      }
+    };
+    fetchAnalytics();
+  }, [selectedUnit, timePeriod]);
 
   // Filter Table Data
   const filteredTableRecords = useMemo(() => {
-    return initialTableRecords.filter((rec) => {
+    return tableRecords.filter((rec) => {
       if (selectedUnit !== 'ALL' && rec.unit_id.toString() !== selectedUnit) {
         return false;
       }
@@ -248,97 +162,80 @@ const ProduksiEnergi = () => {
       }
       return true;
     });
-  }, [selectedUnit, fromDate, toDate, searchTableQuery]);
+  }, [tableRecords, selectedUnit, fromDate, toDate, searchTableQuery]);
 
   // Dynamic Chart Data based on timePeriod and selectedUnit
   const currentChartData = useMemo(() => {
-    let sourceData = [];
-    if (timePeriod === 'today') sourceData = hourlyTodayData;
-    else if (timePeriod === '7d') sourceData = weekly7DaysData;
-    else if (timePeriod === '30d') sourceData = monthly30DaysData;
-    else sourceData = yearlyMonthsData;
+    if (tableRecords.length === 0) return [];
 
-    return sourceData.map((d: any) => {
-      let energyValue = d.totalEnergy;
-      if (selectedUnit === '1') energyValue = d.unit1;
-      else if (selectedUnit === '2') energyValue = d.unit2;
+    return tableRecords
+      .filter((rec) => selectedUnit === 'ALL' || rec.unit_id.toString() === selectedUnit)
+      .slice(0, 12)
+      .map((rec) => ({
+        time: rec.timeSlot,
+        date: rec.date,
+        label: rec.date,
+        displayEnergy: rec.energy_kwh,
+        displayTarget: 4000,
+        flow: rec.avg_flow_m3s,
+        avgFlow: rec.avg_flow_m3s,
+        unit1: rec.unit_id === 1 ? rec.energy_kwh : 0,
+        unit2: rec.unit_id === 2 ? rec.energy_kwh : 0,
+        totalEnergy: rec.energy_kwh,
+      }));
+  }, [tableRecords, selectedUnit]);
 
-      let targetValue = d.target;
-      if (selectedUnit === '1' || selectedUnit === '2') targetValue = d.target / 2;
-
-      return {
-        ...d,
-        displayEnergy: energyValue,
-        displayTarget: targetValue,
-      };
-    });
-  }, [timePeriod, selectedUnit]);
-
-  // Analytics Metrics strictly calculated from RULES.md formulas
-  // 3.1 Availability = (Running Hours / Periode Jam) * 100
-  // 3.2 Capacity Factor = (Energi Aktual kWh / (Kapasitas Terpasang kW * Jam)) * 100
-  // 3.3 Energy Production = Sum(energy_kwh)
-  // 3.4 Water Utilization = (Debit Rata-rata / Debit Desain) * 100 (Debit Desain = 2.65 m3/s per unit)
+  // Analytics Metrics strictly calculated from database
   const metrics = useMemo(() => {
     const isSingleUnit = selectedUnit !== 'ALL';
     const installedCapacityKw = isSingleUnit ? 500 : 1000;
     const designFlowM3s = isSingleUnit ? 2.65 : 5.30;
 
-    let totalEnergyKwh = 0;
-    let periodHours = 168; // default 7 days = 168 hours
-    let avgFlow = 2.45;
-    let runningHours = 164.5;
-    let prevEnergyKwh = 132000;
-    let prevCf = 78.5;
-    let prevAvailability = 97.2;
+    let periodHours = 168;
+    if (timePeriod === 'today') periodHours = 24;
+    else if (timePeriod === '7d') periodHours = 168;
+    else if (timePeriod === '30d') periodHours = 720;
+    else periodHours = 8760;
 
-    if (timePeriod === 'today') {
-      periodHours = 24;
-      totalEnergyKwh = isSingleUnit ? 5450 : 10850;
-      prevEnergyKwh = isSingleUnit ? 5200 : 10400;
-      avgFlow = 2.48;
-      runningHours = 24;
-      prevCf = 86.6;
-      prevAvailability = 100;
-    } else if (timePeriod === '7d') {
-      periodHours = 168;
-      totalEnergyKwh = isSingleUnit ? 69800 : 139400;
-      prevEnergyKwh = isSingleUnit ? 66500 : 133000;
-      avgFlow = 2.45;
-      runningHours = 164.5;
-      prevCf = 79.2;
-      prevAvailability = 96.5;
-    } else if (timePeriod === '30d') {
-      periodHours = 720;
-      totalEnergyKwh = isSingleUnit ? 279500 : 558500;
-      prevEnergyKwh = isSingleUnit ? 268000 : 536000;
-      avgFlow = 2.44;
-      runningHours = 708;
-      prevCf = 74.4;
-      prevAvailability = 97.0;
-    } else {
-      // 10 Months YTD in MWh converted to kWh
-      periodHours = 7300;
-      totalEnergyKwh = isSingleUnit ? 2450000 : 4900000;
-      prevEnergyKwh = isSingleUnit ? 2320000 : 4640000;
-      avgFlow = 2.32;
-      runningHours = 7120;
-      prevCf = 64.2;
-      prevAvailability = 96.0;
+    let totalEnergyKwh = 0;
+    let avgFlow = 0;
+    let runningHours = 0;
+    let prevEnergyKwh = 0;
+    let prevCf = 0;
+    let prevAvailability = 0;
+
+    if (analyticsData) {
+      totalEnergyKwh = analyticsData.metrics.total_energy_kwh || 0;
+      runningHours = analyticsData.metrics.total_running_hours || 0;
+      avgFlow = analyticsData.metrics.average_flow_m3_s || 0;
+    } else if (tableRecords.length > 0) {
+      const relevant = tableRecords.filter(
+        (r) => selectedUnit === 'ALL' || r.unit_id.toString() === selectedUnit
+      );
+      totalEnergyKwh = relevant.reduce((acc, cur) => acc + cur.energy_kwh, 0);
+      runningHours = relevant.reduce((acc, cur) => acc + cur.running_hours, 0);
+      avgFlow = relevant.length > 0 ? relevant.reduce((acc, cur) => acc + cur.avg_flow_m3s, 0) / relevant.length : 0;
     }
 
-    // Capacity Factor (%) = (Energi Aktual / (Kapasitas Terpasang * Jam)) * 100
-    const capacityFactor = Math.min(100, (totalEnergyKwh / (installedCapacityKw * periodHours)) * 100);
-    // Availability (%) = (Running Hours / Jam Periode) * 100
-    const availability = Math.min(100, (runningHours / periodHours) * 100);
-    // Water Utilization (%) = (Debit Aktual / Debit Desain) * 100
-    const waterUtilization = Math.min(100, (avgFlow / designFlowM3s) * 100);
+    // Capacity Factor (%)
+    const capacityFactor = periodHours > 0 && totalEnergyKwh > 0
+      ? Math.min(100, (totalEnergyKwh / (installedCapacityKw * periodHours)) * 100)
+      : 0;
+    // Availability (%)
+    const availability = periodHours > 0 && runningHours > 0
+      ? Math.min(100, (runningHours / periodHours) * 100)
+      : 0;
+    // Water Utilization (%)
+    const waterUtilization = avgFlow > 0
+      ? Math.min(100, (avgFlow / designFlowM3s) * 100)
+      : 0;
     // Hydraulic Efficiency (kWh produced per m3 water)
     const totalWaterVolumeM3 = avgFlow * periodHours * 3600;
-    const waterEfficiency = totalWaterVolumeM3 > 0 ? (totalEnergyKwh / (totalWaterVolumeM3 / 1000)).toFixed(2) : '0.18';
+    const waterEfficiency = totalWaterVolumeM3 > 0 && totalEnergyKwh > 0
+      ? (totalEnergyKwh / (totalWaterVolumeM3 / 1000)).toFixed(2)
+      : '0.00';
 
-    // Deltas vs previous period (RULES.md 3.5)
-    const energyDeltaPct = Number((((totalEnergyKwh - prevEnergyKwh) / prevEnergyKwh) * 100).toFixed(1));
+    const energyDeltaPct = prevEnergyKwh > 0 ? Number((((totalEnergyKwh - prevEnergyKwh) / prevEnergyKwh) * 100).toFixed(1)) : 0;
     const cfDelta = Number((capacityFactor - prevCf).toFixed(1));
     const availDelta = Number((availability - prevAvailability).toFixed(1));
 
@@ -530,8 +427,18 @@ const ProduksiEnergi = () => {
                     className="h-8 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 font-medium px-2.5 outline-none focus:border-slate-400"
                   >
                     <option value="ALL">Semua Unit (Unit 1 & 2 - 1.000 kW)</option>
-                    <option value="1">Unit 1 (500 kW)</option>
-                    <option value="2">Unit 2 (500 kW)</option>
+                    {units.length > 0 ? (
+                      units.map((u) => (
+                        <option key={u.id} value={u.id.toString()}>
+                          {u.name} ({u.capacity || 500} kW)
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="1">Unit 1 (500 kW)</option>
+                        <option value="2">Unit 2 (500 kW)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -645,52 +552,59 @@ const ProduksiEnergi = () => {
                 </div>
 
                 <div className="h-[240px] w-full mt-3">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={currentChartData} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis
-                        dataKey={timePeriod === 'today' ? 'time' : timePeriod === '7d' ? 'date' : 'label'}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: '#64748B' }}
-                      />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
-                      <RechartsTooltip
-                        formatter={(value: any, name: any) => [
-                          timePeriod === 'year' ? `${value} MWh` : `${value.toLocaleString('id-ID')} kWh`,
-                          name === 'displayEnergy' ? 'Produksi Aktual' : 'Target Kontrak'
-                        ]}
-                        contentStyle={{
-                          backgroundColor: '#0F172A',
-                          borderColor: '#334155',
-                          borderRadius: '4px',
-                          color: '#F8FAFC',
-                          fontSize: '11px',
-                          padding: '6px 10px'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        iconType="circle"
-                        wrapperStyle={{ paddingBottom: '8px', fontSize: '11px' }}
-                        formatter={(val) => (val === 'displayEnergy' ? 'Aktual' : 'Target PPA')}
-                      />
-                      <Bar dataKey="displayEnergy" name="displayEnergy" fill="#0F4C81" radius={[2, 2, 0, 0]} barSize={20} />
-                      <Line
-                        type="monotone"
-                        dataKey="displayTarget"
-                        name="displayTarget"
-                        stroke="#10B981"
-                        strokeWidth={2}
-                        strokeDasharray="4 4"
-                        dot={{ r: 2.5, fill: '#10B981' }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  {currentChartData.length === 0 ? (
+                    <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                      <Zap size={24} className="text-slate-300 mb-1.5" />
+                      <span className="text-xs">Belum ada data telemetri produksi energi di database.</span>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={currentChartData} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis
+                          dataKey={timePeriod === 'today' ? 'time' : timePeriod === '7d' ? 'date' : 'label'}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: '#64748B' }}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                        <RechartsTooltip
+                          formatter={(value: any, name: any) => [
+                            timePeriod === 'year' ? `${value} MWh` : `${value.toLocaleString('id-ID')} kWh`,
+                            name === 'displayEnergy' ? 'Produksi Aktual' : 'Target Kontrak'
+                          ]}
+                          contentStyle={{
+                            backgroundColor: '#0F172A',
+                            borderColor: '#334155',
+                            borderRadius: '4px',
+                            color: '#F8FAFC',
+                            fontSize: '11px',
+                            padding: '6px 10px'
+                          }}
+                        />
+                        <Legend
+                          verticalAlign="top"
+                          align="right"
+                          iconType="circle"
+                          wrapperStyle={{ paddingBottom: '8px', fontSize: '11px' }}
+                          formatter={(val) => (val === 'displayEnergy' ? 'Aktual' : 'Target PPA')}
+                        />
+                        <Bar dataKey="displayEnergy" name="displayEnergy" fill="#0F4C81" radius={[2, 2, 0, 0]} barSize={20} />
+                        <Line
+                          type="monotone"
+                          dataKey="displayTarget"
+                          name="displayTarget"
+                          stroke="#10B981"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={{ r: 2.5, fill: '#10B981' }}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-mono">
-                  <div>Rata-rata: <strong className="text-slate-800">96.8% Target</strong></div>
+                  <div>Rata-rata: <strong className="text-slate-800">{metrics.capacityFactor}% Target</strong></div>
                   <div>Toleransi Deviasi: <strong className="text-emerald-700">&plusmn;5% Normal</strong></div>
                 </div>
               </div>
@@ -713,65 +627,72 @@ const ProduksiEnergi = () => {
                 </div>
 
                 <div className="h-[240px] w-full mt-3">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={currentChartData} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis
-                        dataKey={timePeriod === 'today' ? 'time' : timePeriod === '7d' ? 'date' : 'label'}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: '#64748B' }}
-                      />
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: '#0891B2' }}
-                        domain={[1.5, 3.0]}
-                      />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: '#0F172A',
-                          borderColor: '#334155',
-                          borderRadius: '4px',
-                          color: '#F8FAFC',
-                          fontSize: '11px',
-                          padding: '6px 10px'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        iconType="circle"
-                        wrapperStyle={{ paddingBottom: '8px', fontSize: '11px' }}
-                        formatter={(val) => (val === 'displayEnergy' ? 'Daya (kW)' : 'Debit Air (m³/s)')}
-                      />
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="displayEnergy"
-                        name="displayEnergy"
-                        stroke="#0F4C81"
-                        strokeWidth={2}
-                        dot={{ r: 2.5, fill: '#0F4C81' }}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey={timePeriod === 'today' ? 'flow' : 'avgFlow'}
-                        name={timePeriod === 'today' ? 'flow' : 'avgFlow'}
-                        stroke="#0891B2"
-                        strokeWidth={2}
-                        dot={{ r: 2.5, fill: '#0891B2' }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                  {currentChartData.length === 0 ? (
+                    <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+                      <Activity size={24} className="text-slate-300 mb-1.5" />
+                      <span className="text-xs">Belum ada data korelasi daya dan debit di database.</span>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={currentChartData} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis
+                          dataKey={timePeriod === 'today' ? 'time' : timePeriod === '7d' ? 'date' : 'label'}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: '#64748B' }}
+                        />
+                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748B' }} />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: '#0891B2' }}
+                          domain={[0, 5]}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: '#0F172A',
+                            borderColor: '#334155',
+                            borderRadius: '4px',
+                            color: '#F8FAFC',
+                            fontSize: '11px',
+                            padding: '6px 10px'
+                          }}
+                        />
+                        <Legend
+                          verticalAlign="top"
+                          align="right"
+                          iconType="circle"
+                          wrapperStyle={{ paddingBottom: '8px', fontSize: '11px' }}
+                          formatter={(val) => (val === 'displayEnergy' ? 'Daya (kW)' : 'Debit Air (m³/s)')}
+                        />
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="displayEnergy"
+                          name="displayEnergy"
+                          stroke="#0F4C81"
+                          strokeWidth={2}
+                          dot={{ r: 2.5, fill: '#0F4C81' }}
+                        />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={timePeriod === 'today' ? 'flow' : 'avgFlow'}
+                          name={timePeriod === 'today' ? 'flow' : 'avgFlow'}
+                          stroke="#0891B2"
+                          strokeWidth={2}
+                          dot={{ r: 2.5, fill: '#0891B2' }}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-mono">
                   <div>Q Desain Intake: <strong className="text-slate-800">2.65 m³/s / unit</strong></div>
-                  <div>Spesifik: <strong className="text-blue-700">~180 W / L/s</strong></div>
+                  <div>Spesifik: <strong className="text-blue-700">{metrics.waterEfficiency} kWh / m³</strong></div>
                 </div>
               </div>
             </div>
@@ -806,40 +727,72 @@ const ProduksiEnergi = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    <tr className="hover:bg-slate-50/70">
-                      <td className="py-2.5 px-4 font-medium text-slate-900">
-                        PLTMH Unit 1
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
-                          RUNNING
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">500 kW</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">475 kW</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">50.8%</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">82.4%</td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">165.2 Jam</td>
-                      <td className="py-2.5 px-3 text-right text-slate-900">2.51 m³/s</td>
-                      <td className="py-2.5 px-4 text-right text-slate-900">76°C (Waspada)</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50/70">
-                      <td className="py-2.5 px-4 font-medium text-slate-900">
-                        PLTMH Unit 2
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
-                          RUNNING
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">500 kW</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">460 kW</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">49.2%</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-900">80.1%</td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">163.8 Jam</td>
-                      <td className="py-2.5 px-3 text-right text-slate-900">2.48 m³/s</td>
-                      <td className="py-2.5 px-4 text-right text-slate-900">68°C (Normal)</td>
-                    </tr>
+                    {(() => {
+                      const u1Record = tableRecords.find((r) => r.unit_id === 1);
+                      const u2Record = tableRecords.find((r) => r.unit_id === 2);
+                      const totalPower = (u1Record?.avg_power_kw || 0) + (u2Record?.avg_power_kw || 0);
+                      const u1Share = totalPower > 0 ? (((u1Record?.avg_power_kw || 0) / totalPower) * 100).toFixed(1) + '%' : '-';
+                      const u2Share = totalPower > 0 ? (((u2Record?.avg_power_kw || 0) / totalPower) * 100).toFixed(1) + '%' : '-';
+
+                      return (
+                        <>
+                          <tr className="hover:bg-slate-50/70">
+                            <td className="py-2.5 px-4 font-medium text-slate-900">
+                              PLTMH Unit 1
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
+                                {u1Record ? u1Record.status : 'STANDBY'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-600">500 kW</td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u1Record ? `${u1Record.avg_power_kw} kW` : '-'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u1Share}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u1Record ? `${u1Record.capacity_factor_pct}%` : '0%'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-600">
+                              {u1Record ? `${u1Record.running_hours.toFixed(1)} Jam` : '0 Jam'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-900">
+                              {u1Record ? `${u1Record.avg_flow_m3s.toFixed(2)} m³/s` : '-'}
+                            </td>
+                            <td className="py-2.5 px-4 text-right text-slate-900">-</td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/70">
+                            <td className="py-2.5 px-4 font-medium text-slate-900">
+                              PLTMH Unit 2
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
+                                {u2Record ? u2Record.status : 'STANDBY'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-600">500 kW</td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u2Record ? `${u2Record.avg_power_kw} kW` : '-'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u2Share}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-medium text-slate-900">
+                              {u2Record ? `${u2Record.capacity_factor_pct}%` : '0%'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-600">
+                              {u2Record ? `${u2Record.running_hours.toFixed(1)} Jam` : '0 Jam'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-900">
+                              {u2Record ? `${u2Record.avg_flow_m3s.toFixed(2)} m³/s` : '-'}
+                            </td>
+                            <td className="py-2.5 px-4 text-right text-slate-900">-</td>
+                          </tr>
+                        </>
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -919,7 +872,7 @@ const ProduksiEnergi = () => {
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-center">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200 whitespace-nowrap">
+                            <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
                               {item.status}
                             </span>
                           </td>
