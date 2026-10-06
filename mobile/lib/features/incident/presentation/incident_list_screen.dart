@@ -29,7 +29,7 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
     } else if (index == 1) {
       MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      context.push('/profile');
+      context.go('/profile');
     }
   }
 
@@ -37,14 +37,21 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(incidentControllerProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0284C7),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0284C7),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Daftar Gangguan',
           style: GoogleFonts.inter(
@@ -158,8 +165,9 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
         elevation: 3,
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildIncidentCard(IncidentModel item) {
     final status = item.status.toUpperCase();

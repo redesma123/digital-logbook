@@ -316,14 +316,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Andi Pratama';
     final userRole = user?.role.isNotEmpty == true ? user!.role : 'Operator';
 
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0284C7),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0284C7),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Profil & Pengaturan',
           style: GoogleFonts.inter(
@@ -499,8 +506,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         currentIndex: 2, // Profil is active
         onTap: _onBottomNavTap,
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMenuItem({
     required IconData icon,

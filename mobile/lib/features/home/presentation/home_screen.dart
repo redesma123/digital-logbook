@@ -37,17 +37,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _handleQuickAction(String route) {
     if (route == '/logbook') {
-      context.push('/history-logbook');
+      context.go('/history-logbook');
     } else if (route == '/gangguan') {
-      context.push('/incidents');
+      context.go('/incidents');
     } else if (route == '/maintenance') {
-      context.push('/maintenance');
+      context.go('/maintenance');
     } else if (route == '/inspeksi') {
-      context.push('/inspeksi');
+      context.go('/inspeksi');
     } else if (route == '/laporan') {
-      context.push('/unit-dashboard');
+      context.go('/unit-dashboard');
     } else if (route == '/lainnya') {
-      context.push('/lainnya');
+      context.go('/lainnya');
     }
   }
 
@@ -116,7 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (index == 1) {
             MenuHubBottomSheet.show(context);
           } else if (index == 2) {
-            context.push('/profile');
+            context.go('/profile');
           } else {
             setState(() {
               _currentNavIndex = index;

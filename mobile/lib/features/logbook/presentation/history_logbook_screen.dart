@@ -30,14 +30,21 @@ class HistoryLogbookScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(logbookControllerProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F265C),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/home'),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F265C),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Histori Logbook',
           style: GoogleFonts.inter(
@@ -188,12 +195,13 @@ class HistoryLogbookScreen extends ConsumerWidget {
           } else if (idx == 1) {
             MenuHubBottomSheet.show(context);
           } else if (idx == 2) {
-            context.push('/profile');
+            context.go('/profile');
           }
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildListRow(BuildContext context, WidgetRef ref, LogbookModel item) {
     return InkWell(

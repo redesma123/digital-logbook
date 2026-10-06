@@ -144,7 +144,7 @@ class MenuHubBottomSheet extends StatelessWidget {
                 return InkWell(
                   onTap: () {
                     Navigator.pop(context);
-                    context.push(item.route);
+                    context.go(item.route);
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(

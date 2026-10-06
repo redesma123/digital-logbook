@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 700),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startTimer() {
-    _timer = Timer(const Duration(milliseconds: 2800), () {
+    _timer = Timer(const Duration(milliseconds: 1300), () {
       _navigateToLogin();
     });
   }

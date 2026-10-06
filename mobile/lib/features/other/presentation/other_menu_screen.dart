@@ -14,7 +14,7 @@ class OtherMenuScreen extends StatelessWidget {
     } else if (index == 1) {
       MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      context.push('/profile');
+      context.go('/profile');
     }
   }
 
@@ -119,22 +119,21 @@ class OtherMenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F265C),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              try {
-                context.go('/home');
-              } catch (_) {}
-            }
-          },
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F265C),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Menu & Utilitas Lainnya',
           style: GoogleFonts.inter(
@@ -278,8 +277,9 @@ class OtherMenuScreen extends StatelessWidget {
         currentIndex: 1, // Menu tab active
         onTap: (idx) => _onBottomNavTap(context, idx),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionHeader(String title) {
     return Padding(

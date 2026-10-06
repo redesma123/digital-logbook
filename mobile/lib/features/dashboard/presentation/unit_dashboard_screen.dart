@@ -34,7 +34,7 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
     } else if (index == 1) {
       MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      context.push('/profile');
+      context.go('/profile');
     }
   }
 
@@ -60,14 +60,21 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
       maxMetricValue = 100;
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0284C7),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0284C7),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Dashboard Unit',
           style: GoogleFonts.inter(
@@ -308,8 +315,9 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
         currentIndex: 1, // Menu tab active
         onTap: _onBottomNavTap,
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTabOption({required int index, required String label}) {
     final isSelected = _selectedMetricTab == index;

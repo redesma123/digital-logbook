@@ -137,7 +137,7 @@ class _InspectionScreenState extends State<InspectionScreen> {
     } else if (index == 1) {
       MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      context.push('/profile');
+      context.go('/profile');
     }
   }
 
@@ -172,22 +172,21 @@ class _InspectionScreenState extends State<InspectionScreen> {
     // Group items by category
     final categories = _items.map((e) => e.category).toSet().toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.surfacePage,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F265C),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              try {
-                context.go('/home');
-              } catch (_) {}
-            }
-          },
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.surfacePage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F265C),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
+          ),
         title: Text(
           'Checklist Inspeksi',
           style: GoogleFonts.inter(
@@ -395,8 +394,9 @@ class _InspectionScreenState extends State<InspectionScreen> {
         currentIndex: 1, // Menu tab active
         onTap: _onBottomNavTap,
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSummaryPill(String label, int count, Color color, Color bg) {
     return Container(
