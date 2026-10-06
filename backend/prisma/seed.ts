@@ -39,6 +39,17 @@ async function main() {
     },
   });
 
+  await prisma.users.upsert({
+    where: { username: 'management1' },
+    update: {},
+    create: {
+      username: 'management1',
+      password_hash: await bcrypt.hash('management123', 12),
+      full_name: 'Bambang Manajemen',
+      role: 'MANAGEMENT',
+    },
+  });
+
   const plant = await prisma.plants.upsert({
     where: { id: 1 },
     update: {},
