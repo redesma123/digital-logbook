@@ -14,6 +14,7 @@ class SecureStorageService {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _savedUsernameKey = 'saved_username';
   static const String _rememberMeKey = 'remember_me';
+  static const String _userDataKey = 'user_data';
 
   static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _biometricUsernameKey = 'biometric_username';
@@ -46,6 +47,26 @@ class SecureStorageService {
     try {
       await _storage.delete(key: _accessTokenKey);
       await _storage.delete(key: _refreshTokenKey);
+    } catch (_) {}
+  }
+
+  Future<void> saveUserData(String userJson) async {
+    try {
+      await _storage.write(key: _userDataKey, value: userJson);
+    } catch (_) {}
+  }
+
+  Future<String?> getUserData() async {
+    try {
+      return await _storage.read(key: _userDataKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearUserData() async {
+    try {
+      await _storage.delete(key: _userDataKey);
     } catch (_) {}
   }
 

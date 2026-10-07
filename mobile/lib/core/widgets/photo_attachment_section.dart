@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
+import '../network/api_url_helper.dart';
 import '../services/image_picker_service.dart';
 
 class PhotoAttachmentSection extends ConsumerWidget {
@@ -27,6 +28,8 @@ class PhotoAttachmentSection extends ConsumerWidget {
       barrierColor: Colors.black87,
       builder: (ctx) {
         final isAsset = photoPath.startsWith('assets/');
+        final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoPath);
+        final isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
         final file = File(photoPath);
 
         return Dialog(
@@ -39,25 +42,35 @@ class PhotoAttachmentSection extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: InteractiveViewer(
                   maxScale: 4.0,
-                  child: isAsset
-                      ? Image.asset(
-                          photoPath,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: const Color(0xFF1E293B),
-                            padding: const EdgeInsets.all(40),
-                            child: const Icon(Icons.image, color: Colors.white54, size: 48),
-                          ),
-                        )
-                      : Image.file(
-                          file,
+                  child: isNetwork
+                      ? Image.network(
+                          resolvedUrl,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Container(
                             color: const Color(0xFF1E293B),
                             padding: const EdgeInsets.all(40),
                             child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
                           ),
-                        ),
+                        )
+                      : isAsset
+                          ? Image.asset(
+                              photoPath,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: const Color(0xFF1E293B),
+                                padding: const EdgeInsets.all(40),
+                                child: const Icon(Icons.image, color: Colors.white54, size: 48),
+                              ),
+                            )
+                          : Image.file(
+                              file,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: const Color(0xFF1E293B),
+                                padding: const EdgeInsets.all(40),
+                                child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                              ),
+                            ),
                 ),
               ),
               Positioned(
@@ -145,6 +158,8 @@ class PhotoAttachmentSection extends ConsumerWidget {
             children: [
               ...photos.map((photoPath) {
                 final isAsset = photoPath.startsWith('assets/');
+                final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoPath);
+                final isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
                 final file = File(photoPath);
 
                 return Container(
@@ -163,27 +178,38 @@ class PhotoAttachmentSection extends ConsumerWidget {
                       children: [
                         GestureDetector(
                           onTap: () => _showFullImage(context, photoPath),
-                          child: isAsset
-                              ? Image.asset(
-                                  photoPath,
+                          child: isNetwork
+                              ? Image.network(
+                                  resolvedUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => Container(
                                     color: const Color(0xFF1E293B),
                                     child: const Center(
-                                      child: Icon(Icons.image, color: Colors.white54, size: 24),
+                                      child: Icon(Icons.broken_image, color: Colors.white54, size: 24),
                                     ),
                                   ),
                                 )
-                              : Image.file(
-                                  file,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: const Color(0xFF1E293B),
-                                    child: const Center(
-                                      child: Icon(Icons.image_not_supported, color: Colors.white54, size: 24),
+                              : isAsset
+                                  ? Image.asset(
+                                      photoPath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: const Color(0xFF1E293B),
+                                        child: const Center(
+                                          child: Icon(Icons.image, color: Colors.white54, size: 24),
+                                        ),
+                                      ),
+                                    )
+                                  : Image.file(
+                                      file,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: const Color(0xFF1E293B),
+                                        child: const Center(
+                                          child: Icon(Icons.image_not_supported, color: Colors.white54, size: 24),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
                         ),
                         Positioned(
                           top: 4,

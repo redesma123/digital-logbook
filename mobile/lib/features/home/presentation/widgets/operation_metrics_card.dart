@@ -10,10 +10,10 @@ class OperationMetricsCard extends StatelessWidget {
 
   const OperationMetricsCard({
     super.key,
-    this.activePower = 450.0,
-    this.frequency = 50.0,
-    this.voltage = 400.0,
-    this.current = 820.0,
+    this.activePower = 0.0,
+    this.frequency = 0.0,
+    this.voltage = 0.0,
+    this.current = 0.0,
   });
 
   @override

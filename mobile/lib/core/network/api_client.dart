@@ -6,7 +6,7 @@ import '../storage/secure_storage_service.dart';
 final apiClientProvider = Provider<Dio>((ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
-  final defaultBaseUrl = kIsWeb ? 'http://localhost:3000/api/v1' : 'http://10.0.2.2:3000/api/v1';
+  final defaultBaseUrl = kIsWeb ? 'http://localhost:3000/api/v1' : 'http://192.168.1.70:3000/api/v1'; //ganti ip address untuk melakukan login
   final baseUrl = configuredBaseUrl.isNotEmpty ? configuredBaseUrl : defaultBaseUrl;
 
   final dio = Dio(

@@ -1,29 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
+import '../network/operational_notification_repository.dart';
 
-class OperationalNotificationItem {
-  final String id;
-  final String title;
-  final String message;
-  final String timestamp;
-  final String type; // 'alarm', 'warning', 'info', 'success'
-  final String? targetRoute;
-  final bool isUnread;
-
-  const OperationalNotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.timestamp,
-    required this.type,
-    this.targetRoute,
-    this.isUnread = true,
-  });
-}
-
-class NotificationBottomSheet extends StatefulWidget {
+class NotificationBottomSheet extends ConsumerStatefulWidget {
   const NotificationBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -36,73 +18,14 @@ class NotificationBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<NotificationBottomSheet> createState() => _NotificationBottomSheetState();
+  ConsumerState<NotificationBottomSheet> createState() => _NotificationBottomSheetState();
 }
 
-class _NotificationBottomSheetState extends State<NotificationBottomSheet> {
-  late List<OperationalNotificationItem> _notifications;
-
-  @override
-  void initState() {
-    super.initState();
-    _notifications = [
-      const OperationalNotificationItem(
-        id: '1',
-        title: 'ALARM: Generator Unit 1 Trip',
-        message: 'Proteksi Over Current (51) aktif pada Generator Unit 1. Segera lakukan pengecekan relay dan kondisi belitan.',
-        timestamp: '12 Apr 2025, 14:25 WIB',
-        type: 'alarm',
-        targetRoute: '/incidents',
-        isUnread: true,
-      ),
-      const OperationalNotificationItem(
-        id: '2',
-        title: 'Peringatan: Vibrasi Turbin Meningkat',
-        message: 'Sensor vibrasi bantalan turbin mendeteksi 4.8 mm/s mendekati batas batas toleransi (5.0 mm/s).',
-        timestamp: '08 Apr 2025, 10:15 WIB',
-        type: 'warning',
-        targetRoute: '/incidents',
-        isUnread: true,
-      ),
-      const OperationalNotificationItem(
-        id: '3',
-        title: 'Pengingat Pengisian Logsheet Shift',
-        message: 'Waktu operan shift pagi (07:00 - 15:00). Pastikan pencatatan Hour Meter dan parameter operasi telah lengkap.',
-        timestamp: 'Hari ini, 07:00 WIB',
-        type: 'info',
-        targetRoute: '/history-logbook',
-        isUnread: false,
-      ),
-      const OperationalNotificationItem(
-        id: '4',
-        title: 'Maintenance Selesai: Trash Rack',
-        message: 'Pembersihan trash rack intake selesai dikerjakan oleh Tim Sipil & Operasi. Debit air kembali normal 2.85 m³/s.',
-        timestamp: '03 Apr 2025, 11:30 WIB',
-        type: 'success',
-        targetRoute: '/maintenance',
-        isUnread: false,
-      ),
-    ];
-  }
-
-  void _markAllAsRead() {
-    setState(() {
-      _notifications = _notifications
-          .map((n) => OperationalNotificationItem(
-                id: n.id,
-                title: n.title,
-                message: n.message,
-                timestamp: n.timestamp,
-                type: n.type,
-                targetRoute: n.targetRoute,
-                isUnread: false,
-              ))
-          .toList();
-    });
-  }
-
+class _NotificationBottomSheetState extends ConsumerState<NotificationBottomSheet> {
   @override
   Widget build(BuildContext context) {
+    final notificationsAsync = ref.watch(notificationsProvider);
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.78,
@@ -156,7 +79,9 @@ class _NotificationBottomSheetState extends State<NotificationBottomSheet> {
                   ],
                 ),
                 TextButton(
-                  onPressed: _markAllAsRead,
+                  onPressed: () {
+                    ref.read(notificationsProvider.notifier).markAllAsRead();
+                  },
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   ),
@@ -174,17 +99,102 @@ class _NotificationBottomSheetState extends State<NotificationBottomSheet> {
           ),
           const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-          // Notifications List
+          // Notifications List or Loading / Empty States
           Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: _notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = _notifications[index];
-                return _buildNotificationCard(context, item);
+            child: notificationsAsync.when(
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              error: (err, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sync_problem_rounded, color: Color(0xFF94A3B8), size: 40),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Gagal memuat notifikasi',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.neutral900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => ref.read(notificationsProvider.notifier).refresh(),
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF1F5F9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.notifications_none_rounded,
+                              size: 36,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Tidak Ada Notifikasi Operasional',
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.neutral900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Seluruh unit, gangguan, dan agenda pemeliharaan berjalan normal.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
+                  color: AppColors.primary,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    itemCount: items.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return _buildNotificationCard(context, item);
+                    },
+                  ),
+                );
               },
             ),
           ),
@@ -225,6 +235,7 @@ class _NotificationBottomSheetState extends State<NotificationBottomSheet> {
 
     return InkWell(
       onTap: () {
+        ref.read(notificationsProvider.notifier).markItemAsRead(item.id);
         if (item.targetRoute != null) {
           Navigator.pop(context);
           context.push(item.targetRoute!);

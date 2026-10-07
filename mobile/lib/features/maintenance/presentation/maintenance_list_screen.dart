@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_url_helper.dart';
 import '../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
 import '../domain/maintenance_model.dart';
@@ -22,6 +24,15 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
     'Process',
     'Complete',
   ];
+
+  String _formatDisplayDate(String isoDate) {
+    try {
+      final parsed = DateTime.parse(isoDate);
+      return DateFormat('dd MMM yyyy').format(parsed);
+    } catch (_) {
+      return isoDate;
+    }
+  }
 
   void _onBottomNavTap(int index) {
     if (index == 0) {
@@ -47,127 +58,182 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
       child: Scaffold(
         backgroundColor: AppColors.surfacePage,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0284C7),
+          backgroundColor: const Color(0xFF0F265C),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.go('/home'),
           ),
-        title: Text(
-          'Daftar Maintenance',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
-            tooltip: 'Tambah Maintenance',
-            onPressed: () => context.push('/input-maintenance'),
-          ),
-        ],
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          // Filter Status Dropdown Header
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.neutral50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.neutral300),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: state.statusFilter,
-                        isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
-                        items: _statusFilters.map((st) {
-                          return DropdownMenuItem<String>(
-                            value: st,
-                            child: Text(
-                              st,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.neutral900,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ref.read(maintenanceControllerProvider.notifier).filterByStatus(val);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          title: Text(
+            'Daftar Maintenance',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
-          const Divider(height: 1, color: AppColors.neutral200),
-
-          // Maintenance Cards List
-          Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF0284C7)),
-                  )
-                : state.records.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.build_circle_outlined, size: 48, color: AppColors.neutral400),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tidak ada data maintenance.',
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.neutral500,
-                              ),
-                            ),
-                          ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              tooltip: 'Tambah Maintenance',
+              onPressed: () => context.push('/input-maintenance'),
+            ),
+          ],
+          centerTitle: false,
+          elevation: 0,
+        ),
+        body: Column(
+          children: [
+            // Filter Status Dropdown Header
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.statusFilter,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
+                    items: _statusFilters.map((st) {
+                      return DropdownMenuItem<String>(
+                        value: st,
+                        child: Text(
+                          st,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.neutral900,
+                          ),
                         ),
-                      )
-                    : ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: state.records.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = state.records[index];
-                          return _buildMaintenanceCard(item);
-                        },
-                      ),
-          ),
-        ],
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(maintenanceControllerProvider.notifier).filterByStatus(val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+            // Maintenance Cards List
+            Expanded(
+              child: state.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    )
+                  : state.records.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: () => ref.read(maintenanceControllerProvider.notifier).loadRecords(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(32),
+                                      ),
+                                      child: const Icon(
+                                        Icons.build_outlined,
+                                        size: 32,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Tidak Ada Data Maintenance',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.neutral900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                                      child: Text(
+                                        'Belum ada catatan pemeliharaan yang terdaftar di database. Tarik ke bawah untuk menyegarkan.',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
+                                          color: const Color(0xFF64748B),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton.icon(
+                                      onPressed: () => context.push('/input-maintenance'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      ),
+                                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                      label: Text(
+                                        'Tambah Maintenance',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () => ref.read(maintenanceControllerProvider.notifier).loadRecords(),
+                          child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: state.records.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final item = state.records[index];
+                              return _buildMaintenanceCard(item);
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: HomeBottomNav(
+          currentIndex: 1,
+          onTap: _onBottomNavTap,
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => context.push('/input-maintenance'),
+          backgroundColor: AppColors.primary,
+          elevation: 3,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: 1, // Menu tab active
-        onTap: _onBottomNavTap,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/input-maintenance'),
-        backgroundColor: const Color(0xFF0284C7),
-        elevation: 3,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildMaintenanceCard(MaintenanceModel item) {
     final status = item.status.toUpperCase();
@@ -208,7 +274,7 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.neutral200),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x05000000),
@@ -222,7 +288,6 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Status Icon Indicator
                 Container(
                   width: 38,
                   height: 38,
@@ -235,22 +300,19 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Content Column
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Row with Date and Status Badge
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            item.date,
+                            _formatDisplayDate(item.date),
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.neutral500,
+                              color: const Color(0xFF64748B),
                             ),
                           ),
                           Container(
@@ -271,10 +333,8 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-
-                      // Equipment Title
                       Text(
-                        item.equipment,
+                        '${item.equipment} - ${item.unitName}',
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -282,18 +342,32 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                         ),
                       ),
                       const SizedBox(height: 2),
-
-                      // Job Type Subtitle
                       Text(
                         item.jobType,
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.neutral700,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF475569),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (item.technician.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline, size: 14, color: Color(0xFF64748B)),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.technician,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -331,7 +405,6 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
@@ -343,7 +416,6 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                 ),
               ),
             ),
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
@@ -372,11 +444,11 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              item.date,
+                              _formatDisplayDate(item.date),
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: AppColors.neutral500,
+                                color: const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -401,26 +473,54 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
               ),
             ),
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            // Body
             Flexible(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoSection('Peralatan', item.equipment, Icons.settings_outlined),
+                    _buildDetailItem('Unit Pembangkit', item.unitName),
                     const SizedBox(height: 12),
-                    _buildInfoSection('Teknisi Penanggung Jawab', item.technician, Icons.engineering_outlined),
+                    _buildDetailItem('Peralatan', item.equipment),
                     const SizedBox(height: 12),
-                    _buildInfoSection('Deskripsi Pekerjaan', item.description, Icons.description_outlined),
+                    _buildDetailItem('Teknisi Pelaksana', item.technician.isNotEmpty ? item.technician : '-'),
+                    const SizedBox(height: 12),
+                    _buildDetailItem('Dibuat Oleh', item.creatorName),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Deskripsi Pekerjaan',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        item.description.isNotEmpty ? item.description : 'Tidak ada keterangan tambahan.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.neutral900,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Lampiran Foto',
                       style: GoogleFonts.inter(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.neutral500,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -430,17 +530,22 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: item.photos.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 10),
-                          itemBuilder: (c, i) => Container(
-                            width: 110,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.photo_rounded, color: Color(0xFF38BDF8), size: 32),
-                            ),
-                          ),
+                          separatorBuilder: (context, index) => const SizedBox(width: 8),
+                          itemBuilder: (context, idx) {
+                            final rawUrl = item.photos[idx];
+                            final pUrl = ApiUrlHelper.resolvePhotoUrl(rawUrl);
+                            return Container(
+                              width: 90,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E293B),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: pUrl.startsWith('http')
+                                  ? Image.network(pUrl, fit: BoxFit.cover)
+                                  : const Center(child: Icon(Icons.image, color: Colors.white54)),
+                            );
+                          },
                         ),
                       )
                     else
@@ -448,36 +553,58 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Text(
                           'Tidak ada lampiran foto.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFF94A3B8),
+                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+
+                    // Action Button to Advance Status
+                    if (status == 'PLAN')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await ref.read(maintenanceControllerProvider.notifier).updateRecordStatus(item.id, 'PROCESS');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF59E0B),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(
+                            'Mulai Pengerjaan (Set Process)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ),
+                      )
+                    else if (status == 'PROCESS')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await ref.read(maintenanceControllerProvider.notifier).updateRecordStatus(item.id, 'COMPLETE');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(
+                            'Selesaikan Maintenance (Set Complete)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                         ),
                       ),
+                    const SizedBox(height: 16),
                   ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(
-                    'Tutup',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  ),
                 ),
               ),
             ),
@@ -487,46 +614,19 @@ class _MaintenanceListScreenState extends ConsumerState<MaintenanceListScreen> {
     );
   }
 
-  Widget _buildInfoSection(String label, String value, IconData icon) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildDetailItem(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neutral900),
+        ),
+      ],
     );
   }
 }

@@ -8,8 +8,8 @@ class ProductionSummaryCard extends StatelessWidget {
 
   const ProductionSummaryCard({
     super.key,
-    this.productionKwh = 4250.0,
-    this.percentageChange = 12.0,
+    this.productionKwh = 0.0,
+    this.percentageChange = 0.0,
   });
 
   @override

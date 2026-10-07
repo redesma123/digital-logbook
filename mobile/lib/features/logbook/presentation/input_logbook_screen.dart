@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/photo_attachment_section.dart';
+import '../../dashboard/data/dashboard_repository.dart';
+import '../../dashboard/domain/dashboard_model.dart';
 import '../data/logbook_repository.dart';
 import '../domain/logbook_model.dart';
 import 'controllers/logbook_controller.dart';
@@ -19,21 +21,36 @@ class InputLogbookScreen extends ConsumerStatefulWidget {
 class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  DateTime _selectedDate = DateTime(2025, 4, 12);
-  String _selectedShift = 'Pagi';
-  String _selectedUnitStatus = 'Running';
+  int _selectedUnitId = 1;
+  List<UnitItemModel> _units = const [];
 
-  final _voltageController = TextEditingController(text: '400');
-  final _currentController = TextEditingController(text: '820');
-  final _frequencyController = TextEditingController(text: '50.0');
-  final _activePowerController = TextEditingController(text: '450');
-  final _powerFactorController = TextEditingController(text: '0.98');
-  final _flowRateController = TextEditingController(text: '2.50');
-  final _waterLevelController = TextEditingController(text: '1.80');
-  final _bearingTempController = TextEditingController(text: '52');
-  final _notesController = TextEditingController(text: 'Kondisi normal.');
+  DateTime _selectedDate = DateTime.now();
+  String _selectedShift = 'PAGI';
+  String _selectedUnitStatus = 'RUNNING';
+
+  // Parameter Operasi Wajib / Inti
+  final _voltageController = TextEditingController();
+  final _currentController = TextEditingController();
+  final _frequencyController = TextEditingController();
+  final _activePowerController = TextEditingController();
+  final _powerFactorController = TextEditingController();
+  final _flowRateController = TextEditingController();
+  final _waterLevelController = TextEditingController();
+  final _bearingTempController = TextEditingController();
+  final _notesController = TextEditingController();
   late final TextEditingController _hmStartController;
   final _hmEndController = TextEditingController();
+
+  // Parameter Operasi Tambahan (Opsional)
+  bool _isOptionalExpanded = false;
+  final _rpmController = TextEditingController();
+  final _genTempController = TextEditingController();
+  final _turbTempController = TextEditingController();
+  final _vibrationController = TextEditingController();
+  final _headController = TextEditingController();
+  final _pressureController = TextEditingController();
+  final _reactivePowerController = TextEditingController();
+  final _intakeConditionController = TextEditingController();
 
   final List<String> _attachedPhotos = [];
   bool _isSaving = false;
@@ -41,11 +58,34 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
   @override
   void initState() {
     super.initState();
-    // Operan shift: HM awal = HM akhir shift sebelumnya.
-    final lastHm = ref.read(logbookRepositoryProvider).latestHourMeterEnd;
-    _hmStartController = TextEditingController(text: lastHm?.toStringAsFixed(1) ?? '');
+    _hmStartController = TextEditingController();
     _hmStartController.addListener(_onHmChanged);
     _hmEndController.addListener(_onHmChanged);
+    Future.microtask(() => _loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final units = await ref.read(dashboardRepositoryProvider).getUnits();
+      if (mounted && units.isNotEmpty) {
+        setState(() {
+          _units = units;
+          _selectedUnitId = units.first.id;
+        });
+      }
+      await _loadLatestHm(_selectedUnitId);
+    } catch (_) {}
+  }
+
+  Future<void> _loadLatestHm(int unitId) async {
+    try {
+      final lastHm = await ref.read(logbookRepositoryProvider).fetchLatestHourMeter(unitId);
+      if (mounted && lastHm != null) {
+        setState(() {
+          _hmStartController.text = lastHm.toStringAsFixed(1);
+        });
+      }
+    } catch (_) {}
   }
 
   void _onHmChanged() => setState(() {});
@@ -53,7 +93,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
   double? get _runningHours {
     final start = double.tryParse(_hmStartController.text);
     final end = double.tryParse(_hmEndController.text);
-    return (start != null && end != null) ? end - start : null;
+    return (start != null && end != null && end >= start) ? end - start : null;
   }
 
   @override
@@ -69,6 +109,14 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
     _notesController.dispose();
     _hmStartController.dispose();
     _hmEndController.dispose();
+    _rpmController.dispose();
+    _genTempController.dispose();
+    _turbTempController.dispose();
+    _vibrationController.dispose();
+    _headController.dispose();
+    _pressureController.dispose();
+    _reactivePowerController.dispose();
+    _intakeConditionController.dispose();
     super.dispose();
   }
 
@@ -105,23 +153,33 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
 
     final entry = LogbookModel(
       id: DateTime.now().millisecondsSinceEpoch,
-      date: DateFormat('dd MMM yyyy').format(_selectedDate),
+      unitId: _selectedUnitId,
+      date: DateFormat('yyyy-MM-dd').format(_selectedDate),
       time: DateFormat('HH:mm').format(DateTime.now()),
       shift: _selectedShift,
       unitStatus: _selectedUnitStatus,
-      operatorName: 'Andi Pratama',
-      voltage: double.tryParse(_voltageController.text) ?? 400,
-      current: double.tryParse(_currentController.text) ?? 820,
-      frequency: double.tryParse(_frequencyController.text) ?? 50.0,
-      activePower: double.tryParse(_activePowerController.text) ?? 450,
-      powerFactor: double.tryParse(_powerFactorController.text) ?? 0.98,
-      flowRate: double.tryParse(_flowRateController.text) ?? 2.50,
-      waterLevel: double.tryParse(_waterLevelController.text) ?? 1.80,
-      bearingTemp: double.tryParse(_bearingTempController.text) ?? 52,
+      voltage: double.tryParse(_voltageController.text) ?? 0.0,
+      current: double.tryParse(_currentController.text) ?? 0.0,
+      frequency: double.tryParse(_frequencyController.text) ?? 0.0,
+      activePower: double.tryParse(_activePowerController.text) ?? 0.0,
+      powerFactor: double.tryParse(_powerFactorController.text) ?? 0.0,
+      flowRate: double.tryParse(_flowRateController.text) ?? 0.0,
+      waterLevel: double.tryParse(_waterLevelController.text) ?? 0.0,
+      bearingTemp: double.tryParse(_bearingTempController.text) ?? 0.0,
       hourMeterStart: double.tryParse(_hmStartController.text),
       hourMeterEnd: double.tryParse(_hmEndController.text),
       notes: _notesController.text.trim(),
       photos: _attachedPhotos,
+      rpm: double.tryParse(_rpmController.text),
+      generatorTemp: double.tryParse(_genTempController.text),
+      turbineTemp: double.tryParse(_turbTempController.text),
+      vibrationMms: double.tryParse(_vibrationController.text),
+      headM: double.tryParse(_headController.text),
+      pressureBar: double.tryParse(_pressureController.text),
+      reactivePowerKvar: double.tryParse(_reactivePowerController.text),
+      intakeCondition: _intakeConditionController.text.trim().isNotEmpty
+          ? _intakeConditionController.text.trim()
+          : null,
     );
 
     final success = await ref.read(logbookControllerProvider.notifier).saveLogbook(entry);
@@ -172,7 +230,60 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Date Selector
+              // 1. Unit Selector
+              Text(
+                'Unit Pembangkit',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.neutral700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedUnitId,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
+                    items: _units.isNotEmpty
+                        ? _units.map((u) {
+                            return DropdownMenuItem<int>(
+                              value: u.id,
+                              child: Text(
+                                '${u.name} (${u.unitCode})',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.neutral900,
+                                ),
+                              ),
+                            );
+                          }).toList()
+                        : const [
+                            DropdownMenuItem<int>(
+                              value: 1,
+                              child: Text('Unit 1 (PLTMH)'),
+                            ),
+                          ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedUnitId = val);
+                        _loadLatestHm(val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Date Selector
               Text(
                 'Tanggal',
                 style: GoogleFonts.inter(
@@ -213,9 +324,9 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Shift Selector (Pills)
+              // 3. Shift Selector (Pills)
               Text(
-                'Shift',
+                'Shift Operasi',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -224,13 +335,17 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 6),
               Row(
-                children: ['Pagi', 'Siang', 'Malam'].map((shift) {
-                  final isSelected = _selectedShift == shift;
+                children: [
+                  {'label': 'Pagi', 'value': 'PAGI'},
+                  {'label': 'Siang', 'value': 'SIANG'},
+                  {'label': 'Malam', 'value': 'MALAM'},
+                ].map((item) {
+                  final isSelected = _selectedShift == item['value'];
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: GestureDetector(
-                        onTap: () => setState(() => _selectedShift = shift),
+                        onTap: () => setState(() => _selectedShift = item['value']!),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -252,7 +367,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              shift,
+                              item['label']!,
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -268,7 +383,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 3. Parameter Operasi Section Card
+              // 4. Parameter Operasi Section Card (Parameter Inti)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -280,7 +395,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Parameter Operasi',
+                      'Parameter Operasi Inti',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -288,20 +403,103 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _buildParamField('Tegangan (V)', _voltageController),
-                    _buildParamField('Arus (A)', _currentController),
-                    _buildParamField('Frekuensi (Hz)', _frequencyController),
-                    _buildParamField('Daya Aktif (kW)', _activePowerController),
-                    _buildParamField('Faktor Daya', _powerFactorController),
-                    _buildParamField('Debit Air (m³/s)', _flowRateController),
-                    _buildParamField('Tinggi Muka Air (m)', _waterLevelController),
-                    _buildParamField('Suhu Bearing (°C)', _bearingTempController, isLast: true),
+                    _buildParamField('Tegangan (V)', _voltageController, hint: '400'),
+                    _buildParamField('Arus (A)', _currentController, hint: '820'),
+                    _buildParamField('Frekuensi (Hz)', _frequencyController, hint: '50.0'),
+                    _buildParamField('Daya Aktif (kW)', _activePowerController, hint: '450'),
+                    _buildParamField('Faktor Daya (Cos φ)', _powerFactorController, hint: '0.98'),
+                    _buildParamField('Debit Air (m³/s)', _flowRateController, hint: '2.50'),
+                    _buildParamField('Tinggi Muka Air (m)', _waterLevelController, hint: '1.80'),
+                    _buildParamField('Suhu Bearing (°C)', _bearingTempController, hint: '52', isLast: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 5. Parameter Tambahan (Opsional - Collapsible Accordion)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _isOptionalExpanded = !_isOptionalExpanded;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Parameter Teknis Lanjutan',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.neutral900,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'RPM, Suhu Turbin/Generator, Vibrasi, Head, Tekanan',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppColors.neutral500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                _isOptionalExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                                size: 20,
+                                color: AppColors.neutral700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_isOptionalExpanded) ...[
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            _buildParamField('Putaran Turbin (RPM)', _rpmController, hint: '1000'),
+                            _buildParamField('Suhu Generator (°C)', _genTempController, hint: '60'),
+                            _buildParamField('Suhu Turbin (°C)', _turbTempController, hint: '45'),
+                            _buildParamField('Vibrasi (mm/s)', _vibrationController, hint: '1.2'),
+                            _buildParamField('Tinggi Jatuh / Head (m)', _headController, hint: '12.0'),
+                            _buildParamField('Tekanan Penstock (bar)', _pressureController, hint: '1.5'),
+                            _buildParamField('Daya Reaktif (kVAR)', _reactivePowerController, hint: '90'),
+                            _buildParamField('Kondisi Intake', _intakeConditionController, hint: 'Normal / Bersih', isLast: true, isText: true),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // 4. Hour Meter (Operan Shift)
+              // 6. Hour Meter (Operan Shift)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -321,8 +519,8 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _buildParamField('HM Awal (jam)', _hmStartController, validator: _validateHmStart),
-                    _buildParamField('HM Akhir (jam)', _hmEndController, validator: _validateHmEnd),
+                    _buildParamField('HM Awal (jam)', _hmStartController, hint: '0.0', validator: _validateHmStart),
+                    _buildParamField('HM Akhir (jam)', _hmEndController, hint: '0.0', validator: _validateHmEnd),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -349,7 +547,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 5. Status Unit Selector (Running, Standby, Shutdown, Trip)
+              // 7. Status Unit Selector (RUNNING, STANDBY, OFFLINE, TRIP)
               Text(
                 'Status Unit',
                 style: GoogleFonts.inter(
@@ -361,20 +559,20 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  _buildStatusButton('Running', const Color(0xFF16A34A)),
+                  _buildStatusButton('Running', 'RUNNING', const Color(0xFF16A34A)),
                   const SizedBox(width: 8),
-                  _buildStatusButton('Standby', const Color(0xFFEAB308)),
+                  _buildStatusButton('Standby', 'STANDBY', const Color(0xFFEAB308)),
                   const SizedBox(width: 8),
-                  _buildStatusButton('Shutdown', AppColors.statusOffline),
+                  _buildStatusButton('Offline', 'OFFLINE', AppColors.statusOffline),
                   const SizedBox(width: 8),
-                  _buildStatusButton('Trip', AppColors.statusTrip),
+                  _buildStatusButton('Trip', 'TRIP', AppColors.statusTrip),
                 ],
               ),
               const SizedBox(height: 20),
 
-              // 5. Catatan
+              // 8. Catatan
               Text(
-                'Catatan',
+                'Catatan Operasi',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -386,7 +584,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
                 controller: _notesController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Kondisi normal...',
+                  hintText: 'Kondisi operasional unit...',
                   fillColor: Colors.white,
                   filled: true,
                   border: OutlineInputBorder(
@@ -397,9 +595,9 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 6. Foto Dokumentasi
+              // 9. Foto Dokumentasi
               PhotoAttachmentSection(
-                label: 'Foto',
+                label: 'Foto Dokumentasi',
                 photos: _attachedPhotos,
                 onPhotoAdded: (path) {
                   setState(() {
@@ -414,7 +612,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               const SizedBox(height: 28),
 
-              // 7. Simpan Button
+              // 10. Tombol Simpan
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -451,7 +649,6 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
     );
   }
 
-  // Aturan validasi HM sesuai docs/SCHEMA.md: start ≥ 0, end ≥ start, running 0–8 jam/shift.
   String? _validateHmStart(String? v) {
     final start = double.tryParse(v ?? '');
     if (start == null) return 'Wajib diisi';
@@ -472,7 +669,9 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
   Widget _buildParamField(
     String label,
     TextEditingController controller, {
+    String? hint,
     bool isLast = false,
+    bool isText = false,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -500,8 +699,8 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
             child: TextFormField(
               controller: controller,
               validator: validator,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              textAlign: TextAlign.right,
+              keyboardType: isText ? TextInputType.text : const TextInputType.numberWithOptions(decimal: true),
+              textAlign: isText ? TextAlign.left : TextAlign.right,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -509,22 +708,24 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
               ),
               decoration: InputDecoration(
                 isDense: true,
+                hintText: hint,
+                hintStyle: GoogleFonts.inter(fontSize: 12, color: AppColors.neutral400, fontWeight: FontWeight.normal),
                 errorStyle: GoogleFonts.inter(fontSize: 10),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                  ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
               ),
             ),
           ),
@@ -533,11 +734,11 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
     );
   }
 
-  Widget _buildStatusButton(String status, Color activeColor) {
-    final isSelected = _selectedUnitStatus == status;
+  Widget _buildStatusButton(String label, String value, Color activeColor) {
+    final isSelected = _selectedUnitStatus == value;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedUnitStatus = status),
+        onTap: () => setState(() => _selectedUnitStatus = value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 9),
@@ -550,7 +751,7 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
           ),
           child: Center(
             child: Text(
-              status,
+              label,
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
