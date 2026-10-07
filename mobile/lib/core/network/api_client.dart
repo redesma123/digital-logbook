@@ -1,13 +1,11 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_storage_service.dart';
+import 'api_url_helper.dart';
 
 final apiClientProvider = Provider<Dio>((ref) {
   final storage = ref.watch(secureStorageServiceProvider);
-  const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
-  final defaultBaseUrl = kIsWeb ? 'http://localhost:3000/api/v1' : 'http://192.168.1.70:3000/api/v1'; //ganti ip address untuk melakukan login
-  final baseUrl = configuredBaseUrl.isNotEmpty ? configuredBaseUrl : defaultBaseUrl;
+  final baseUrl = ApiUrlHelper.baseUrl;
 
   final dio = Dio(
     BaseOptions(
@@ -27,6 +25,7 @@ final apiClientProvider = Provider<Dio>((ref) {
         final token = await storage.getAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
+          ApiUrlHelper.setActiveAuthToken(token);
         }
         return handler.next(options);
       },

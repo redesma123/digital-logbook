@@ -27,10 +27,11 @@ class PhotoAttachmentSection extends ConsumerWidget {
       context: context,
       barrierColor: Colors.black87,
       builder: (ctx) {
-        final isAsset = photoPath.startsWith('assets/');
-        final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoPath);
-        final isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
         final file = File(photoPath);
+        final isLocalFile = file.existsSync();
+        final isAsset = photoPath.startsWith('assets/');
+        final resolvedUrl = isLocalFile ? '' : ApiUrlHelper.resolvePhotoUrl(photoPath);
+        final isNetwork = !isLocalFile && !isAsset && (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://'));
 
         return Dialog(
           backgroundColor: Colors.transparent,
@@ -42,9 +43,9 @@ class PhotoAttachmentSection extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: InteractiveViewer(
                   maxScale: 4.0,
-                  child: isNetwork
-                      ? Image.network(
-                          resolvedUrl,
+                  child: isLocalFile
+                      ? Image.file(
+                          file,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Container(
                             color: const Color(0xFF1E293B),
@@ -62,15 +63,25 @@ class PhotoAttachmentSection extends ConsumerWidget {
                                 child: const Icon(Icons.image, color: Colors.white54, size: 48),
                               ),
                             )
-                          : Image.file(
-                              file,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: const Color(0xFF1E293B),
-                                padding: const EdgeInsets.all(40),
-                                child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
-                              ),
-                            ),
+                          : isNetwork
+                              ? Image.network(
+                                  resolvedUrl,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: const Color(0xFF1E293B),
+                                    padding: const EdgeInsets.all(40),
+                                    child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                                  ),
+                                )
+                              : Image.file(
+                                  file,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: const Color(0xFF1E293B),
+                                    padding: const EdgeInsets.all(40),
+                                    child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                                  ),
+                                ),
                 ),
               ),
               Positioned(
@@ -157,10 +168,11 @@ class PhotoAttachmentSection extends ConsumerWidget {
             physics: const BouncingScrollPhysics(),
             children: [
               ...photos.map((photoPath) {
-                final isAsset = photoPath.startsWith('assets/');
-                final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoPath);
-                final isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
                 final file = File(photoPath);
+                final isLocalFile = file.existsSync();
+                final isAsset = photoPath.startsWith('assets/');
+                final resolvedUrl = isLocalFile ? '' : ApiUrlHelper.resolvePhotoUrl(photoPath);
+                final isNetwork = !isLocalFile && !isAsset && (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://'));
 
                 return Container(
                   width: 76,
@@ -178,9 +190,9 @@ class PhotoAttachmentSection extends ConsumerWidget {
                       children: [
                         GestureDetector(
                           onTap: () => _showFullImage(context, photoPath),
-                          child: isNetwork
-                              ? Image.network(
-                                  resolvedUrl,
+                          child: isLocalFile
+                              ? Image.file(
+                                  file,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => Container(
                                     color: const Color(0xFF1E293B),
@@ -200,16 +212,27 @@ class PhotoAttachmentSection extends ConsumerWidget {
                                         ),
                                       ),
                                     )
-                                  : Image.file(
-                                      file,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Container(
-                                        color: const Color(0xFF1E293B),
-                                        child: const Center(
-                                          child: Icon(Icons.image_not_supported, color: Colors.white54, size: 24),
+                                  : isNetwork
+                                      ? Image.network(
+                                          resolvedUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            color: const Color(0xFF1E293B),
+                                            child: const Center(
+                                              child: Icon(Icons.broken_image, color: Colors.white54, size: 24),
+                                            ),
+                                          ),
+                                        )
+                                      : Image.file(
+                                          file,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            color: const Color(0xFF1E293B),
+                                            child: const Center(
+                                              child: Icon(Icons.image_not_supported, color: Colors.white54, size: 24),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
                         ),
                         Positioned(
                           top: 4,

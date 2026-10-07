@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_url_helper.dart';
 import 'controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -190,6 +193,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _showServerConfigDialog() {
+    final textController = TextEditingController(text: ApiUrlHelper.baseUrl);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.dns_rounded, size: 22, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Server Endpoint (Debug)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ubah alamat host backend saat development tanpa perlu rebuild kode:',
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              decoration: InputDecoration(
+                labelText: 'Base URL',
+                hintText: 'http://192.168.1.x:3000/api/v1',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ApiUrlHelper.setDynamicUrl(null);
+              ref.invalidate(apiClientProvider);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Server URL dikembalikan ke default.')),
+              );
+            },
+            child: const Text('Reset Default'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () {
+              ApiUrlHelper.setDynamicUrl(textController.text);
+              ref.invalidate(apiClientProvider);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Server URL aktif: ${ApiUrlHelper.baseUrl}')),
+              );
+            },
+            child: const Text('Terapkan', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -205,6 +270,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               alignment: Alignment.topCenter,
             ),
           ),
+
+          // Debug Server Switcher (Hanya tampil di mode Debug / Testing)
+          if (kDebugMode)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 16,
+              child: Material(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(20),
+                child: IconButton(
+                  icon: const Icon(Icons.settings_ethernet, color: Colors.white, size: 20),
+                  tooltip: 'Atur Server Endpoint (Debug)',
+                  onPressed: _showServerConfigDialog,
+                ),
+              ),
+            ),
 
           // Main Scrollable Content
           SafeArea(
