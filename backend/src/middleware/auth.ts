@@ -19,12 +19,19 @@ declare global {
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
+  let token: string | undefined;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (typeof req.query.token === 'string' && req.query.token.trim().length > 0) {
+    token = req.query.token.trim();
+  }
+
+  if (!token) {
     sendError(res, 401, 'Unauthorized', 'Token tidak ditemukan');
     return;
   }
 
-  const token = authHeader.split(' ')[1];
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
     req.user = payload;

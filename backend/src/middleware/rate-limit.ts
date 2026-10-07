@@ -1,8 +1,10 @@
 import rateLimit from 'express-rate-limit';
+import { env } from '../lib/env.js';
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: env.NODE_ENV === 'production' ? 10 : 1000,
+  skipSuccessfulRequests: true,
   message: { statusCode: 429, success: false, error: 'Too Many Requests', message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
   standardHeaders: true,
   legacyHeaders: false,

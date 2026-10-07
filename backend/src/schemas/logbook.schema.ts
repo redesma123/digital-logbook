@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 const electricalSchema = z.object({
-  voltage_v: z.number().min(0).max(500).nullable().optional(),
-  current_a: z.number().min(0).max(1000).nullable().optional(),
-  frequency_hz: z.number().min(45).max(55).nullable().optional(),
+  voltage_v: z.number().min(0).max(30000).nullable().optional(),
+  current_a: z.number().min(0).max(10000).nullable().optional(),
+  frequency_hz: z.number().min(0).max(70).nullable().optional(),
   active_power_kw: z.number().min(0).nullable().optional(),
   reactive_power_kvar: z.number().min(0).nullable().optional(),
   power_factor: z.number().min(0).max(1).nullable().optional(),
@@ -12,11 +12,11 @@ const electricalSchema = z.object({
 }).optional();
 
 const mechanicalSchema = z.object({
-  rpm: z.number().min(0).max(2000).nullable().optional(),
-  bearing_temp_c: z.number().min(0).max(120).nullable().optional(),
-  generator_temp_c: z.number().min(0).max(150).nullable().optional(),
-  turbine_temp_c: z.number().min(0).max(150).nullable().optional(),
-  vibration_mms: z.number().min(0).max(50).nullable().optional(),
+  rpm: z.number().min(0).max(10000).nullable().optional(),
+  bearing_temp_c: z.number().min(0).max(200).nullable().optional(),
+  generator_temp_c: z.number().min(0).max(200).nullable().optional(),
+  turbine_temp_c: z.number().min(0).max(200).nullable().optional(),
+  vibration_mms: z.number().min(0).max(100).nullable().optional(),
 }).optional();
 
 const hydraulicSchema = z.object({
@@ -35,7 +35,7 @@ export const createLogbookSchema = z.object({
     unit_status: z.enum(['RUNNING', 'STANDBY', 'TRIP', 'OFFLINE']),
     hour_meter_start: z.number().min(0).nullable().optional(),
     hour_meter_end: z.number().min(0).nullable().optional(),
-    running_hours: z.number().min(0).max(8).nullable().optional(),
+    running_hours: z.number().min(0).max(24).nullable().optional(),
     notes: z.string().nullable().optional(),
     electrical: electricalSchema,
     mechanical: mechanicalSchema,
@@ -48,7 +48,7 @@ export const updateLogbookSchema = z.object({
     unit_status: z.enum(['RUNNING', 'STANDBY', 'TRIP', 'OFFLINE']).optional(),
     hour_meter_start: z.number().min(0).nullable().optional(),
     hour_meter_end: z.number().min(0).nullable().optional(),
-    running_hours: z.number().min(0).max(8).nullable().optional(),
+    running_hours: z.number().min(0).max(24).nullable().optional(),
     notes: z.string().nullable().optional(),
     electrical: electricalSchema,
     mechanical: mechanicalSchema,

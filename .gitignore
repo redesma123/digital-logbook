@@ -21,3 +21,7 @@ Thumbs.db
 .packages
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Uploaded Files
+uploads/
+backend/uploads/
