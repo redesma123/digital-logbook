@@ -291,9 +291,9 @@ const Gangguan = () => {
             {/* Top Bar / Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Laporan Gangguan Unit (Incidents)</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Laporan Gangguan Unit</h2>
                 <p className="text-sm font-medium text-slate-500 mt-1">
-                  Monitoring insiden peralatan, tindakan penanganan darurat, dan pelacakan alur penyelesaian (OPEN &rarr; PROCESS &rarr; CLOSED).
+                  Monitoring insiden peralatan, tindakan penanganan darurat, dan pelacakan alur penyelesaian.
                 </p>
               </div>
 
@@ -333,7 +333,7 @@ const Gangguan = () => {
               <Card className="bg-white border-rose-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-rose-50/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[0.65rem] font-bold text-rose-600 uppercase tracking-widest">Status: OPEN (Perlu Tindakan)</p>
+                    <p className="text-[0.65rem] font-bold text-rose-600 uppercase tracking-widest">Status: OPEN</p>
                     <p className="text-2xl font-black text-rose-700 mt-1">{openCount}</p>
                     <span className="text-[0.7rem] text-rose-600/80 font-medium">Menunggu respon/investigasi</span>
                   </div>
@@ -343,7 +343,7 @@ const Gangguan = () => {
               <Card className="bg-white border-amber-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-amber-50/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[0.65rem] font-bold text-amber-600 uppercase tracking-widest">Status: PROCESS (Sedang Ditangani)</p>
+                    <p className="text-[0.65rem] font-bold text-amber-600 uppercase tracking-widest">Status: PROCESS</p>
                     <p className="text-2xl font-black text-amber-700 mt-1">{processCount}</p>
                     <span className="text-[0.7rem] text-amber-600/80 font-medium">Proses perbaikan aktif</span>
                   </div>
@@ -353,7 +353,7 @@ const Gangguan = () => {
               <Card className="bg-white border-emerald-200 shadow-sm rounded-md p-4 bg-gradient-to-br from-white to-emerald-50/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[0.65rem] font-bold text-emerald-600 uppercase tracking-widest">Status: CLOSED (Selesai)</p>
+                    <p className="text-[0.65rem] font-bold text-emerald-600 uppercase tracking-widest">Status: CLOSED</p>
                     <p className="text-2xl font-black text-emerald-700 mt-1">{closedCount}</p>
                     <span className="text-[0.7rem] text-emerald-600/80 font-medium">Telah diverifikasi supervisor</span>
                   </div>

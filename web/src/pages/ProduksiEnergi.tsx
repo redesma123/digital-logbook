@@ -10,7 +10,6 @@ import {
   Filter,
   FileSpreadsheet,
   RefreshCw,
-  Layers,
   Activity,
   Eye,
   X
@@ -359,58 +358,45 @@ const ProduksiEnergi = () => {
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Kapasitas terpasang {metrics.installedCapacityKw} kW &middot; +{metrics.energyDeltaPct}% vs prev
                 </div>
               </div>
 
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Capacity Factor (CF)</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    Target &gt;70%
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">
-                    {metrics.capacityFactor}%
+                    {metrics.capacityFactor}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Tren {metrics.cfDelta > 0 ? `+${metrics.cfDelta}%` : `${metrics.cfDelta}%`} vs periode lalu
                 </div>
               </div>
 
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Availability Factor (AF)</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    Target &gt;95%
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">
-                    {metrics.availability}%
+                    {metrics.availability}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Operasi {metrics.runningHours} dari {metrics.periodHours} jam
                 </div>
               </div>
 
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Water Utilization Rate</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    {metrics.avgFlow} m³/s
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">
-                    {metrics.waterUtilization}%
+                    {metrics.waterUtilization}
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Efisiensi hidrolik: {metrics.waterEfficiency} kWh/m³
                 </div>
               </div>
             </div>
@@ -539,7 +525,6 @@ const ProduksiEnergi = () => {
                 <div className="flex justify-between items-start pb-3 border-b border-slate-100">
                   <div>
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                      <Zap size={14} className="text-[#0F4C81]" />
                       Produksi Energi vs Target Kontrak PLN (PPA)
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -605,7 +590,6 @@ const ProduksiEnergi = () => {
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-mono">
                   <div>Rata-rata: <strong className="text-slate-800">{metrics.capacityFactor}% Target</strong></div>
-                  <div>Toleransi Deviasi: <strong className="text-emerald-700">&plusmn;5% Normal</strong></div>
                 </div>
               </div>
 
@@ -614,16 +598,12 @@ const ProduksiEnergi = () => {
                 <div className="flex justify-between items-start pb-3 border-b border-slate-100">
                   <div>
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                      <Activity size={14} className="text-cyan-700" />
                       Korelasi Output Daya (kW) &amp; Debit Aliran Air (m³/s)
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Efisiensi hidrolik turbin: hubungan laju aliran debit dengan daya generator
                     </p>
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    Dual Axis
-                  </span>
                 </div>
 
                 <div className="h-[240px] w-full mt-3">
@@ -701,7 +681,6 @@ const ProduksiEnergi = () => {
             <div className={`${card} overflow-hidden`}>
               <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Layers size={14} className="text-[#0F4C81]" />
                   <span className="text-sm font-semibold text-slate-800">
                     Matriks Distribusi &amp; Perbandingan Teknis (Unit 1 vs Unit 2)
                   </span>

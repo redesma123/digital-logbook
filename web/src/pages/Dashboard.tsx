@@ -119,7 +119,6 @@ const Dashboard = () => {
                       <span className="text-2xl font-bold text-slate-800">{currentPowerKw}</span>
                       <span className="text-xs font-semibold text-slate-500">kW</span>
                     </div>
-                    <p className="text-xs text-green-600 font-semibold mt-1">Beban {currentPowerKw > 0 ? Math.round((currentPowerKw / 500) * 100) : 0}%</p>
                   </div>
                   <div className="bg-[#F8FAFC] p-4 rounded-sm border border-slate-100">
                     <p className="text-[0.65rem] font-bold text-slate-500 tracking-wider uppercase mb-1">FREKUENSI</p>
@@ -127,7 +126,6 @@ const Dashboard = () => {
                       <span className="text-2xl font-bold text-slate-800">{currentFreqHz}</span>
                       <span className="text-xs font-semibold text-slate-500">Hz</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">{currentFreqHz > 0 ? 'Sinkron Grid PLN' : 'Standby'}</p>
                   </div>
                   <div className="bg-[#F8FAFC] p-4 rounded-sm border border-slate-100">
                     <p className="text-[0.65rem] font-bold text-slate-500 tracking-wider uppercase mb-1">DEBIT AIR (FLOW)</p>
@@ -135,15 +133,12 @@ const Dashboard = () => {
                       <span className="text-2xl font-bold text-slate-800">{currentFlowM3s}</span>
                       <span className="text-xs font-semibold text-slate-500">m³/s</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Target Desain: 2.65 m³/s</p>
                   </div>
                   <div className="bg-[#F0F9FF] p-4 rounded-sm border border-blue-100">
                     <p className="text-[0.65rem] font-bold text-blue-600 tracking-wider uppercase mb-1">AVAILABILITY BULAN INI</p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-blue-700">{availabilityPct}</span>
-                      <span className="text-xs font-semibold text-blue-600">%</span>
                     </div>
-                    <p className="text-xs text-green-600 font-semibold mt-1">Target KPI {'>'}95%</p>
                   </div>
                 </div>
               </CardContent>

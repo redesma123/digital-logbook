@@ -281,15 +281,19 @@ const ManagementDashboard = () => {
     { label: 'Bulan Berjalan', energy: totalEnergyMwh, target: 520, cf: currentCf, af: currentAf },
   ];
 
-  const dynamicDailyData: ProductionChartItem[] = [
-    { label: 'H-6', energy: 0, target: 19.5 },
-    { label: 'H-5', energy: 0, target: 19.5 },
-    { label: 'H-4', energy: 0, target: 19.5 },
-    { label: 'H-3', energy: 0, target: 19.5 },
-    { label: 'H-2', energy: 0, target: 19.5 },
-    { label: 'Kemarin', energy: 0, target: 19.5 },
-    { label: 'Hari Ini', energy: Number((todayEnergyKwh / 1000).toFixed(2)), target: 19.5 },
-  ];
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const today = new Date();
+  const dynamicDailyData: ProductionChartItem[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(today.getDate() - (6 - i));
+    const dayName = dayNames[d.getDay()];
+    const isToday = i === 6;
+    return {
+      label: dayName,
+      energy: isToday ? Number((todayEnergyKwh / 1000).toFixed(2)) : 0,
+      target: 19.5,
+    };
+  });
 
   const kpis = [
     {
@@ -307,13 +311,11 @@ const ManagementDashboard = () => {
     {
       label: 'Capacity factor',
       value: String(executiveMetrics.performanceEvaluation.capacityFactorPct),
-      unit: '%',
       note: `Efisiensi hidrolik ${executiveMetrics.performanceEvaluation.hydraulicEfficiencyPct}%`
     },
     {
       label: 'Availability factor',
       value: String(executiveMetrics.availability.availabilityFactorPct),
-      unit: '%',
       note: `Operasi ${executiveMetrics.availability.totalRunningHours} dari ${executiveMetrics.availability.totalPeriodHours} jam`
     }
   ];
@@ -412,13 +414,11 @@ const ManagementDashboard = () => {
             <div className={`${card} px-4 py-3.5`}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-slate-500">Gangguan bulan ini</span>
-                <Badge tone="amber">{executiveMetrics.incidentsSummary.activeProcessCount} aktif</Badge>
               </div>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">
                   {executiveMetrics.incidentsSummary.totalThisMonth}
                 </span>
-                <span className="text-sm text-slate-500">kejadian</span>
               </div>
               <div className="text-xs text-slate-500 mt-1">
                 {executiveMetrics.incidentsSummary.resolvedThisMonthCount} selesai &middot; {resolvedPct}%

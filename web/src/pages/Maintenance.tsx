@@ -380,9 +380,9 @@ const Maintenance = () => {
             {/* Top Bar / Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Rencana & Rekaman Pemeliharaan (Maintenance)</h2>
+                <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Rencana & Rekaman Pemeliharaan</h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Pengelolaan jadwal pemeliharaan unit, koordinasi teknisi pelaksana, dan audit alur kerja (PLAN &rarr; PROCESS &rarr; COMPLETE).
+                  Pengelolaan jadwal pemeliharaan unit, koordinasi teknisi pelaksana, dan audit alur kerja.
                 </p>
               </div>
 
@@ -422,7 +422,6 @@ const Maintenance = () => {
                 <span className="text-xs font-medium text-slate-500">Total Jadwal</span>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{totalCount}</span>
-                  <span className="text-sm text-slate-500">jadwal</span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Rekapitulasi seluruh unit</div>
               </div>
@@ -430,13 +429,9 @@ const Maintenance = () => {
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Rencana</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    PLAN
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{planCount}</span>
-                  <span className="text-sm text-slate-500">item</span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Menunggu pelaksanaan</div>
               </div>
@@ -444,13 +439,9 @@ const Maintenance = () => {
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Dalam Proses</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    PROCESS
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{processCount}</span>
-                  <span className="text-sm text-slate-500">aktif</span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Pekerjaan sedang berlangsung</div>
               </div>
@@ -458,13 +449,9 @@ const Maintenance = () => {
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-slate-500">Selesai</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-700 bg-slate-100 border border-slate-200">
-                    COMPLETE
-                  </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-2">
                   <span className="text-[28px] leading-8 font-semibold text-slate-900 tabular-nums">{completeCount}</span>
-                  <span className="text-sm text-slate-500">selesai</span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Telah diverifikasi supervisor</div>
               </div>

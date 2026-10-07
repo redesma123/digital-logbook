@@ -136,7 +136,7 @@ const TrendParameter: React.FC = () => {
             <div className="bg-slate-50 border border-slate-200 shadow-sm rounded-md p-5 flex flex-wrap justify-between items-start gap-4">
               <div>
                 <p className="text-[0.65rem] font-bold text-blue-600 tracking-widest uppercase flex items-center gap-1.5 mb-1">
-                  <TrendingUp size={12} /> TELEMETRI OPERASIONAL {activeUnit?.name || 'PLTMH UNIT 1'}
+                TELEMETRI OPERASIONAL {activeUnit?.name || 'PLTMH UNIT 1'}
                 </p>
                 <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Trend Parameter Pembangkit</h2>
                 <p className="text-sm font-medium text-slate-500 mt-1">Analisis perubahan parameter operasional unit terhadap waktu berbasis data SCADA & Logbook.</p>
