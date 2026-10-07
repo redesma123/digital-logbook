@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/network/attachment_repository.dart';
 import '../../domain/maintenance_model.dart';
 import '../../data/maintenance_repository.dart';
 
@@ -34,14 +35,34 @@ final maintenanceControllerProvider = NotifierProvider<MaintenanceController, Ma
 
 class MaintenanceController extends Notifier<MaintenanceState> {
   late final MaintenanceRepository _repository;
+  late final AttachmentRepository _attachmentRepo;
 
   @override
   MaintenanceState build() {
     _repository = ref.watch(maintenanceRepositoryProvider);
-    return MaintenanceState(
-      records: MaintenanceModel.mockRecords,
+    _attachmentRepo = ref.watch(attachmentRepositoryProvider);
+    Future.microtask(() => loadRecords());
+    return const MaintenanceState(
+      isLoading: true,
+      records: [],
       statusFilter: 'Semua Status',
     );
+  }
+
+  Future<void> loadRecords() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final items = await _repository.getRecords(statusFilter: state.statusFilter);
+      state = state.copyWith(
+        isLoading: false,
+        records: items,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal memuat data pemeliharaan: $e',
+      );
+    }
   }
 
   Future<void> filterByStatus(String status) async {
@@ -55,18 +76,34 @@ class MaintenanceController extends Notifier<MaintenanceState> {
 
   Future<bool> createRecord(MaintenanceModel record) async {
     state = state.copyWith(isLoading: true);
-    await _repository.createRecord(record);
+    final createdId = await _repository.createRecord(record);
+    if (createdId != null) {
+      if (record.photos.isNotEmpty) {
+        await _attachmentRepo.uploadMultiple(
+          filePaths: record.photos,
+          relatedTo: 'MAINTENANCE',
+          relatedId: createdId,
+        );
+      }
+      final items = await _repository.getRecords(statusFilter: state.statusFilter);
+      state = state.copyWith(
+        isLoading: false,
+        records: items,
+      );
+      return true;
+    }
+    state = state.copyWith(isLoading: false);
+    return false;
+  }
+
+  Future<bool> updateRecordStatus(int id, String newStatus, [String? notes]) async {
+    state = state.copyWith(isLoading: true);
+    final success = await _repository.updateStatus(id, newStatus, notes);
     final items = await _repository.getRecords(statusFilter: state.statusFilter);
     state = state.copyWith(
       isLoading: false,
       records: items,
     );
-    return true;
-  }
-
-  Future<void> updateRecordStatus(int id, String newStatus) async {
-    await _repository.updateStatus(id, newStatus);
-    final items = await _repository.getRecords(statusFilter: state.statusFilter);
-    state = state.copyWith(records: items);
+    return success;
   }
 }

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
+import 'controllers/dashboard_controller.dart';
 
 class UnitDashboardScreen extends ConsumerStatefulWidget {
   const UnitDashboardScreen({super.key});
@@ -14,19 +15,8 @@ class UnitDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
-  String _selectedRange = '7 Hari Terakhir';
   int _selectedMetricTab = 0; // 0: Daya, 1: Debit, 2: Efisiensi
   int _selectedPeriod = 0; // 0: Harian, 1: Bulanan, 2: Tahunan
-
-  final List<String> _dateLabels = ['6 Apr', '7 Apr', '8 Apr', '9 Apr', '10 Apr', '11 Apr', '12 Apr'];
-
-  // Trend Data for 7 days
-  final List<double> _powerValues = [380, 420, 395, 430, 470, 440, 450]; // kW
-  final List<double> _flowValues = [2.2, 2.4, 2.1, 2.4, 2.6, 2.5, 2.5]; // m3/s
-  final List<double> _efficiencyValues = [82, 85, 83, 86, 89, 87, 88]; // %
-
-  // Energy Production Data for 7 days
-  final List<double> _energyValues = [3900, 4150, 4000, 4320, 4600, 4180, 4250]; // kWh
 
   void _onBottomNavTap(int index) {
     if (index == 0) {
@@ -40,23 +30,53 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dashState = ref.watch(dashboardControllerProvider);
+    final summary = dashState.summary;
+    final points = dashState.chartPoints;
+
+    final List<String> currentDates = points.isNotEmpty
+        ? points.map((p) => p.label).toList()
+        : const ['-', '-'];
+
+    final List<double> currentPowerValues = points.isNotEmpty
+        ? points.map((p) => p.powerKw).toList()
+        : const [0.0, 0.0];
+
+    final List<double> currentFlowValues = points.isNotEmpty
+        ? points.map((p) => p.flowM3s).toList()
+        : const [0.0, 0.0];
+
+    final List<double> currentEfficiencyValues = points.isNotEmpty
+        ? points.map((p) => p.efficiencyPct).toList()
+        : const [0.0, 0.0];
+
+    final List<double> currentEnergyValues = points.isNotEmpty
+        ? points.map((p) => p.energyKwh).toList()
+        : const [0.0];
+
     String currentMetricTitle = 'Daya Aktif (kW)';
-    String currentMetricValue = '450 kW';
-    String currentMetricTimestamp = '12 Apr 08:00';
-    List<double> currentChartValues = _powerValues;
+    String currentMetricValue = '${(summary?.activePowerKw ?? 0.0).toStringAsFixed(1)} kW';
+    String currentMetricTimestamp = summary?.lastRecordedAt ?? 'Standby';
+    List<double> currentChartValues = currentPowerValues;
     double maxMetricValue = 600;
 
     if (_selectedMetricTab == 1) {
       currentMetricTitle = 'Debit Air (m³/s)';
-      currentMetricValue = '2.50 m³/s';
-      currentMetricTimestamp = '12 Apr 08:00';
-      currentChartValues = _flowValues;
-      maxMetricValue = 3.0;
+      currentMetricValue = '${(summary?.flowRateM3s ?? 0.0).toStringAsFixed(2)} m³/s';
+      currentMetricTimestamp = summary?.lastRecordedAt ?? 'Standby';
+      currentChartValues = currentFlowValues;
+      maxMetricValue = 3.5;
     } else if (_selectedMetricTab == 2) {
       currentMetricTitle = 'Efisiensi Turbin (%)';
-      currentMetricValue = '88.0 %';
-      currentMetricTimestamp = '12 Apr 08:00';
-      currentChartValues = _efficiencyValues;
+      double eff = 0.0;
+      if ((summary?.activePowerKw ?? 0) > 0 && (summary?.flowRateM3s ?? 0) > 0) {
+        eff = ((summary!.activePowerKw) / (summary.flowRateM3s * 9.81 * 25.0)) * 100;
+        if (eff > 95) eff = 92.5;
+        if (eff < 40) eff = 75.0;
+      }
+      currentMetricValue = '${eff.toStringAsFixed(1)} %';
+      currentMetricTimestamp = summary?.lastRecordedAt ?? 'Standby';
+      currentChartValues = currentEfficiencyValues;
       maxMetricValue = 100;
     }
 
@@ -75,249 +95,258 @@ class _UnitDashboardScreenState extends ConsumerState<UnitDashboardScreen> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.go('/home'),
           ),
-        title: Text(
-          'Dashboard Unit',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Plant Title & Period Filter Dropdown
-            Text(
-              'PLTMh Sampean Baru',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.neutral700,
-              ),
+          title: Text(
+            'Dashboard Unit',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.neutral300),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedRange,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
-                  items: const [
-                    DropdownMenuItem(value: '7 Hari Terakhir', child: Text('7 Hari Terakhir')),
-                    DropdownMenuItem(value: '30 Hari Terakhir', child: Text('30 Hari Terakhir')),
-                    DropdownMenuItem(value: 'Bulan Ini', child: Text('Bulan Ini')),
-                    DropdownMenuItem(value: 'Tahun Ini', child: Text('Tahun Ini')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedRange = val);
-                  },
+          ),
+          centerTitle: false,
+          elevation: 0,
+        ),
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Plant Title & Unit Selector Dropdown
+              Text(
+                'Pilih Unit Pembangkit',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.neutral700,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. Metric Tab Switcher (Daya | Debit | Efisiensi)
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.all(3),
-              child: Row(
-                children: [
-                  _buildTabOption(index: 0, label: 'Daya'),
-                  _buildTabOption(index: 1, label: 'Debit'),
-                  _buildTabOption(index: 2, label: 'Efisiensi'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 3. Line Chart Card (Daya Aktif / Selected Metric)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.neutral200),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x05000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        currentMetricTitle,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.neutral900,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              currentMetricValue,
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF15803D),
-                              ),
-                            ),
-                            Text(
-                              currentMetricTimestamp,
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF15803D),
-                              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.neutral300),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: dashState.selectedUnitId,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
+                    items: dashState.units.isNotEmpty
+                        ? dashState.units.map((u) {
+                            return DropdownMenuItem<int>(
+                              value: u.id,
+                              child: Text('${u.name} (${u.unitCode})'),
+                            );
+                          }).toList()
+                        : const [
+                            DropdownMenuItem<int>(
+                              value: 1,
+                              child: Text('Unit 1 (PLTMH)'),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(dashboardControllerProvider.notifier).selectUnit(val);
+                      }
+                    },
                   ),
-                  const SizedBox(height: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
 
-                  // Line Chart Canvas
-                  SizedBox(
-                    height: 160,
-                    width: double.infinity,
-                    child: _buildTrendChart(
-                      values: currentChartValues,
-                      maxValue: maxMetricValue,
-                      dates: _dateLabels,
+              // 2. Metric Tab Switcher (Daya | Debit | Efisiensi)
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: Row(
+                  children: [
+                    _buildTabOption(index: 0, label: 'Daya'),
+                    _buildTabOption(index: 1, label: 'Debit'),
+                    _buildTabOption(index: 2, label: 'Efisiensi'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 3. Line Chart Card (Daya Aktif / Selected Metric)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.neutral200),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x05000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 4. Bar Chart Card (Produksi Energi)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.neutral200),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x05000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Produksi Energi',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.neutral900,
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          currentMetricTitle,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.neutral900,
+                          ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE0F2FE),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '4.250 kWh',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0369A1),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                currentMetricValue,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF15803D),
+                                ),
                               ),
-                            ),
-                            Text(
-                              '12 Apr 2025',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF0369A1),
+                              Text(
+                                currentMetricTimestamp,
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF15803D),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Period Switcher (Harian | Bulanan | Tahunan)
-                  Row(
-                    children: [
-                      _buildPeriodPill(index: 0, label: 'Harian'),
-                      const SizedBox(width: 8),
-                      _buildPeriodPill(index: 1, label: 'Bulanan'),
-                      const SizedBox(width: 8),
-                      _buildPeriodPill(index: 2, label: 'Tahunan'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Bar Chart Canvas
-                  SizedBox(
-                    height: 160,
-                    width: double.infinity,
-                    child: _buildEnergyBarChart(
-                      values: _energyValues,
-                      dates: _dateLabels,
-                      maxKwh: 6000,
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+
+                    // Line Chart Canvas
+                    SizedBox(
+                      height: 160,
+                      width: double.infinity,
+                      child: _buildTrendChart(
+                        values: currentChartValues.length >= 2 ? currentChartValues : [0.0, 0.0],
+                        maxValue: maxMetricValue,
+                        dates: currentDates.length >= 2 ? currentDates : ['H-1', 'Hari Ini'],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 20),
+
+              // 4. Bar Chart Card (Produksi Energi)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.neutral200),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x05000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Produksi Energi',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.neutral900,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${(summary?.todayEnergyKwh ?? 0.0).toStringAsFixed(1)} kWh',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0369A1),
+                                ),
+                              ),
+                              Text(
+                                summary?.lastRecordedAt ?? 'Hari Ini',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF0369A1),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Period Switcher (Harian | Bulanan | Tahunan)
+                    Row(
+                      children: [
+                        _buildPeriodPill(index: 0, label: 'Harian'),
+                        const SizedBox(width: 8),
+                        _buildPeriodPill(index: 1, label: 'Bulanan'),
+                        const SizedBox(width: 8),
+                        _buildPeriodPill(index: 2, label: 'Tahunan'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Bar Chart Canvas
+                    SizedBox(
+                      height: 160,
+                      width: double.infinity,
+                      child: _buildEnergyBarChart(
+                        values: currentEnergyValues.isNotEmpty ? currentEnergyValues : [0.0],
+                        dates: currentDates.isNotEmpty ? currentDates : ['Hari Ini'],
+                        maxKwh: 6000,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+        bottomNavigationBar: HomeBottomNav(
+          currentIndex: 1, // Menu tab active
+          onTap: _onBottomNavTap,
         ),
       ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: 1, // Menu tab active
-        onTap: _onBottomNavTap,
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildTabOption({required int index, required String label}) {
     final isSelected = _selectedMetricTab == index;

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../../../core/widgets/notification_bottom_sheet.dart';
+import '../../dashboard/presentation/controllers/dashboard_controller.dart';
 import 'widgets/home_header.dart';
 import 'widgets/unit_status_card.dart';
 import 'widgets/operation_metrics_card.dart';
@@ -22,8 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentNavIndex = 0;
 
   Future<void> _handleRefresh() async {
-    // Simulated refresh for real-time monitoring metrics
-    await Future.delayed(const Duration(milliseconds: 600));
+    await ref.read(dashboardControllerProvider.notifier).refresh();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -53,6 +53,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dashState = ref.watch(dashboardControllerProvider);
+    final summary = dashState.summary;
+
     return Scaffold(
       backgroundColor: AppColors.surfacePage,
       appBar: HomeHeader(
@@ -73,20 +76,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               InkWell(
                 onTap: () => context.push('/unit-dashboard'),
                 borderRadius: BorderRadius.circular(12),
-                child: const UnitStatusCard(
-                  unitName: 'PLTMH Sampean Baru',
-                  status: 'RUNNING',
-                  runningSince: '12 Apr 2025 06:30',
+                child: UnitStatusCard(
+                  unitName: summary?.unitName ?? 'PLTMH Sampean Baru',
+                  status: summary?.unitStatus ?? 'RUNNING',
+                  runningSince: summary?.lastRecordedAt ?? 'Standby Telemetri',
                 ),
               ),
               const SizedBox(height: 16),
 
-              // 2. Real-time Operation Metrics Grid (450 kW, 50 Hz, 400 V, 820 A)
-              const OperationMetricsCard(
-                activePower: 450,
-                frequency: 50.0,
-                voltage: 400,
-                current: 820,
+              // 2. Real-time Operation Metrics Grid
+              OperationMetricsCard(
+                activePower: summary?.activePowerKw ?? 0.0,
+                frequency: summary?.frequencyHz ?? 0.0,
+                voltage: summary?.voltageV ?? 0.0,
+                current: summary?.currentA ?? 0.0,
               ),
               const SizedBox(height: 20),
 
@@ -96,13 +99,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 4. Daily Production Summary Card (4.250 kWh, +12% dibanding kemarin)
+              // 4. Daily Production Summary Card
               InkWell(
                 onTap: () => context.push('/unit-dashboard'),
                 borderRadius: BorderRadius.circular(12),
-                child: const ProductionSummaryCard(
-                  productionKwh: 4250.0,
-                  percentageChange: 12.0,
+                child: ProductionSummaryCard(
+                  productionKwh: summary?.todayEnergyKwh ?? 0.0,
+                  percentageChange: 0.0,
                 ),
               ),
               const SizedBox(height: 24),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/network/api_url_helper.dart';
 import '../../../core/widgets/menu_hub_bottom_sheet.dart';
 import '../../home/presentation/widgets/home_bottom_nav.dart';
 import '../domain/incident_model.dart';
@@ -22,6 +24,15 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
     'Process',
     'Closed',
   ];
+
+  String _formatDisplayDateTime(String isoStr) {
+    try {
+      final parsed = DateTime.parse(isoStr).toLocal();
+      return DateFormat('dd MMM yyyy HH:mm').format(parsed);
+    } catch (_) {
+      return isoStr;
+    }
+  }
 
   void _onBottomNavTap(int index) {
     if (index == 0) {
@@ -47,127 +58,182 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
       child: Scaffold(
         backgroundColor: AppColors.surfacePage,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0284C7),
+          backgroundColor: const Color(0xFF0F265C),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.go('/home'),
           ),
-        title: Text(
-          'Daftar Gangguan',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
-            tooltip: 'Tambah Gangguan',
-            onPressed: () => context.push('/input-incident'),
-          ),
-        ],
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          // Filter Status Dropdown Header
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.neutral50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.neutral300),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: state.statusFilter,
-                        isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
-                        items: _statusFilters.map((st) {
-                          return DropdownMenuItem<String>(
-                            value: st,
-                            child: Text(
-                              st,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.neutral900,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ref.read(incidentControllerProvider.notifier).filterByStatus(val);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          title: Text(
+            'Daftar Gangguan',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
-          const Divider(height: 1, color: AppColors.neutral200),
-
-          // Incident Cards List
-          Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF0284C7)),
-                  )
-                : state.incidents.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.info_outline, size: 48, color: AppColors.neutral400),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tidak ada data gangguan.',
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.neutral500,
-                              ),
-                            ),
-                          ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.white),
+              tooltip: 'Tambah Gangguan',
+              onPressed: () => context.push('/input-incident'),
+            ),
+          ],
+          centerTitle: false,
+          elevation: 0,
+        ),
+        body: Column(
+          children: [
+            // Filter Status Dropdown Header
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.statusFilter,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.neutral500),
+                    items: _statusFilters.map((st) {
+                      return DropdownMenuItem<String>(
+                        value: st,
+                        child: Text(
+                          st,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.neutral900,
+                          ),
                         ),
-                      )
-                    : ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: state.incidents.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = state.incidents[index];
-                          return _buildIncidentCard(item);
-                        },
-                      ),
-          ),
-        ],
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(incidentControllerProvider.notifier).filterByStatus(val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+            // Incident Cards List
+            Expanded(
+              child: state.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    )
+                  : state.incidents.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: () => ref.read(incidentControllerProvider.notifier).loadIncidents(),
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(32),
+                                      ),
+                                      child: const Icon(
+                                        Icons.warning_amber_rounded,
+                                        size: 32,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Tidak Ada Data Gangguan',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.neutral900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                                      child: Text(
+                                        'Belum ada laporan kejadian gangguan yang tercatat di database. Tarik ke bawah untuk menyegarkan.',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
+                                          color: const Color(0xFF64748B),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton.icon(
+                                      onPressed: () => context.push('/input-incident'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      ),
+                                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                      label: Text(
+                                        'Lapor Gangguan',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () => ref.read(incidentControllerProvider.notifier).loadIncidents(),
+                          child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: state.incidents.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final item = state.incidents[index];
+                              return _buildIncidentCard(item);
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: HomeBottomNav(
+          currentIndex: 1,
+          onTap: _onBottomNavTap,
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => context.push('/input-incident'),
+          backgroundColor: AppColors.primary,
+          elevation: 3,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: 1, // Menu tab active
-        onTap: _onBottomNavTap,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/input-incident'),
-        backgroundColor: const Color(0xFF0284C7),
-        elevation: 3,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildIncidentCard(IncidentModel item) {
     final status = item.status.toUpperCase();
@@ -181,20 +247,20 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
     if (status == 'OPEN') {
       statusBadgeColor = const Color(0xFFEF4444);
       statusTextColor = Colors.white;
-      leadingIcon = Icons.warning_rounded;
+      leadingIcon = Icons.error_outline_rounded;
       leadingColor = const Color(0xFFEF4444);
       leadingBgColor = const Color(0xFFFEE2E2);
     } else if (status == 'PROCESS') {
       statusBadgeColor = const Color(0xFFF59E0B);
       statusTextColor = Colors.white;
-      leadingIcon = Icons.schedule_rounded;
+      leadingIcon = Icons.hourglass_top_rounded;
       leadingColor = const Color(0xFFD97706);
       leadingBgColor = const Color(0xFFFEF3C7);
     } else {
       // CLOSED
       statusBadgeColor = const Color(0xFF10B981);
       statusTextColor = Colors.white;
-      leadingIcon = Icons.check_circle_rounded;
+      leadingIcon = Icons.check_circle_outline_rounded;
       leadingColor = const Color(0xFF059669);
       leadingBgColor = const Color(0xFFDCFCE7);
     }
@@ -208,7 +274,7 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.neutral200),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x05000000),
@@ -222,7 +288,6 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Status Icon Indicator
                 Container(
                   width: 38,
                   height: 38,
@@ -235,22 +300,19 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Content Column
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Row with Date and Status Badge
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            item.dateTime,
+                            _formatDisplayDateTime(item.dateTime),
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.neutral500,
+                              color: const Color(0xFF64748B),
                             ),
                           ),
                           Container(
@@ -271,10 +333,8 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-
-                      // Equipment & Incident Title
                       Text(
-                        item.incidentType,
+                        '${item.equipment} - ${item.unitName}',
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -282,18 +342,27 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                         ),
                       ),
                       const SizedBox(height: 2),
-
-                      // Subtitle / Description
                       Text(
-                        item.description,
+                        item.incidentType,
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.neutral700,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFDC2626),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (item.description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF475569),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -331,7 +400,6 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
@@ -343,7 +411,6 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                 ),
               ),
             ),
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
@@ -372,11 +439,11 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              item.dateTime,
+                              _formatDisplayDateTime(item.dateTime),
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: AppColors.neutral500,
+                                color: const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -401,28 +468,79 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
               ),
             ),
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            // Body
             Flexible(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoSection('Peralatan Terkait', item.equipment, Icons.settings_outlined),
+                    _buildDetailItem('Unit Pembangkit', item.unitName),
                     const SizedBox(height: 12),
-                    _buildInfoSection('Dilaporkan Oleh', item.reporterName, Icons.person_outline_rounded),
+                    _buildDetailItem('Peralatan', item.equipment),
                     const SizedBox(height: 12),
-                    _buildInfoSection('Deskripsi Gangguan', item.description, Icons.description_outlined),
-                    const SizedBox(height: 12),
-                    _buildInfoSection('Tindakan Operator', item.operatorAction.isNotEmpty ? item.operatorAction : '-', Icons.build_outlined),
+                    _buildDetailItem('Pelapor', item.reporterName),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Deskripsi Kejadian Gangguan',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        item.description.isNotEmpty ? item.description : 'Tidak ada rincian keterangan.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.neutral900,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Tindakan Awal Operator',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        item.operatorAction.isNotEmpty ? item.operatorAction : 'Belum ada tindakan tercatat.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.neutral900,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Lampiran Foto',
                       style: GoogleFonts.inter(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.neutral500,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -432,17 +550,22 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: item.photos.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 10),
-                          itemBuilder: (c, i) => Container(
-                            width: 110,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.photo_rounded, color: Color(0xFF38BDF8), size: 32),
-                            ),
-                          ),
+                          separatorBuilder: (context, index) => const SizedBox(width: 8),
+                          itemBuilder: (context, idx) {
+                            final rawUrl = item.photos[idx];
+                            final pUrl = ApiUrlHelper.resolvePhotoUrl(rawUrl);
+                            return Container(
+                              width: 90,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E293B),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: pUrl.startsWith('http')
+                                  ? Image.network(pUrl, fit: BoxFit.cover)
+                                  : const Center(child: Icon(Icons.image, color: Colors.white54)),
+                            );
+                          },
                         ),
                       )
                     else
@@ -450,36 +573,58 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Text(
                           'Tidak ada lampiran foto.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFF94A3B8),
+                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+
+                    // Action Button to Advance Status
+                    if (status == 'OPEN')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await ref.read(incidentControllerProvider.notifier).updateIncidentStatus(item.id, 'PROCESS');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF59E0B),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(
+                            'Tangani Gangguan (Set Process)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ),
+                      )
+                    else if (status == 'PROCESS')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await ref.read(incidentControllerProvider.notifier).updateIncidentStatus(item.id, 'CLOSED');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(
+                            'Tutup Kasus Gangguan (Set Closed)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                         ),
                       ),
+                    const SizedBox(height: 16),
                   ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(
-                    'Tutup',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  ),
                 ),
               ),
             ),
@@ -489,46 +634,19 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
     );
   }
 
-  Widget _buildInfoSection(String label, String value, IconData icon) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.neutral900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildDetailItem(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neutral900),
+        ),
+      ],
     );
   }
 }

@@ -18,15 +18,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isSyncing = false;
   bool _pushNotificationEnabled = true;
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(authControllerProvider.notifier).refreshProfile();
+    });
+  }
+
   Future<void> _handleSync() async {
     setState(() => _isSyncing = true);
-    await Future.delayed(const Duration(milliseconds: 800));
+    await ref.read(authControllerProvider.notifier).refreshProfile();
     if (mounted) {
       setState(() => _isSyncing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Sinkronisasi data logbook & monitoring berhasil!',
+            'Sinkronisasi data profil dan sistem berhasil.',
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           backgroundColor: const Color(0xFF10B981),
@@ -34,78 +42,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       );
     }
-  }
-
-  void _showChangePasswordDialog() {
-    final oldPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text(
-            'Ubah Password',
-            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: oldPasswordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password Lama',
-                  labelStyle: GoogleFonts.inter(fontSize: 13),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: newPasswordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password Baru',
-                  labelStyle: GoogleFonts.inter(fontSize: 13),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(
-                'Batal',
-                style: GoogleFonts.inter(color: AppColors.neutral500),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Password berhasil diperbarui',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                    ),
-                    backgroundColor: const Color(0xFF10B981),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0284C7),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Text('Simpan', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showNotificationSettings() {
@@ -134,7 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                     subtitle: Text(
-                      'Terima peringatan saat terjadi unit trip atau anomali',
+                      'Terima peringatan saat terjadi unit trip atau anomali parameter',
                       style: GoogleFonts.inter(fontSize: 12, color: AppColors.neutral500),
                     ),
                     value: _pushNotificationEnabled,
@@ -149,7 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0284C7),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -184,17 +120,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0284C7),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Versi 1.0.0 (Build 2025.04)',
+                'Versi 1.0.0 (Production Build)',
                 style: GoogleFonts.inter(fontSize: 13, color: AppColors.neutral500),
               ),
               const SizedBox(height: 12),
               Text(
-                'Sistem Pencatatan Logbook Digital dan Monitoring Operasional PLTMh Sampean Baru secara real-time dan terintegrasi.',
+                'Sistem Pencatatan Logbook Digital dan Monitoring Operasional PLTMH Sampean Baru secara real-time dan terintegrasi dengan database.',
                 style: GoogleFonts.inter(fontSize: 13, color: AppColors.neutral700, height: 1.4),
               ),
             ],
@@ -204,7 +140,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 'Tutup',
-                style: GoogleFonts.inter(color: const Color(0xFF0284C7), fontWeight: FontWeight.w600),
+                style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -232,11 +168,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
-              Text('• Tim IT Pusat: it-support@hydromon.id', style: GoogleFonts.inter(fontSize: 13)),
+              Text('• Tim IT: it-support@hydromon.id', style: GoogleFonts.inter(fontSize: 13)),
               Text('• Supervisor Operasi: 0812-3456-7890', style: GoogleFonts.inter(fontSize: 13)),
               const SizedBox(height: 12),
               Text(
-                'Manual book dan panduan SOP dapat diakses pada menu dokumentasi web.',
+                'Panduan SOP dan tata cara pelaporan dapat diakses melalui portal web manajemen.',
                 style: GoogleFonts.inter(fontSize: 12, color: AppColors.neutral500),
               ),
             ],
@@ -246,7 +182,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 'Mengerti',
-                style: GoogleFonts.inter(color: const Color(0xFF0284C7), fontWeight: FontWeight.w600),
+                style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -282,7 +218,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           content: Text(
-            'Apakah Anda yakin ingin keluar dari aplikasi HYDRO-MON?',
+            'Apakah Anda yakin ingin keluar dari akun ini?',
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.neutral700),
           ),
           actions: [
@@ -321,7 +257,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } else if (index == 1) {
       MenuHubBottomSheet.show(context);
     } else if (index == 2) {
-      // Current Screen: Profil
+      // Current Screen
     }
   }
 
@@ -329,8 +265,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
-    final userName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Andi Pratama';
-    final userRole = user?.role.isNotEmpty == true ? user!.role : 'Operator';
+
+    final displayName = (user != null && user.fullName.trim().isNotEmpty)
+        ? user.fullName.trim()
+        : (user?.username ?? 'Pengguna');
+    final displayRole = user?.role.toUpperCase() ?? 'OPERATOR';
+    final displayUsername = user?.username.isNotEmpty == true ? '@${user!.username}' : '';
+    final initialLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     return PopScope(
       canPop: false,
@@ -342,201 +283,223 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Scaffold(
         backgroundColor: AppColors.surfacePage,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0284C7),
+          backgroundColor: const Color(0xFF0F265C),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.go('/home'),
           ),
-        title: Text(
-          'Profil & Pengaturan',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+          title: Text(
+            'Profil & Pengaturan',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              tooltip: 'Perbarui Profil',
+              onPressed: _handleSync,
+            ),
+          ],
+          centerTitle: false,
+          elevation: 0,
+        ),
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
+            children: [
+              // 1. User Profile Card
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x05000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        initialLetter,
+                        style: GoogleFonts.inter(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neutral900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  displayRole,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                              if (displayUsername.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  displayUsername,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'PLTMH Sampean Baru',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 2. Settings Menu List Card
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x05000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildMenuItem(
+                      icon: Icons.fingerprint_rounded,
+                      title: 'Login Biometrik / Sidik Jari',
+                      subtitle: authState.isBiometricEnabled ? 'Aktif' : 'Nonaktif',
+                      trailing: Switch(
+                        value: authState.isBiometricEnabled,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: _handleBiometricToggle,
+                      ),
+                      onTap: () => _handleBiometricToggle(!authState.isBiometricEnabled),
+                    ),
+                    _buildMenuDivider(),
+                    _buildMenuItem(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Pengaturan Notifikasi',
+                      onTap: _showNotificationSettings,
+                    ),
+                    _buildMenuDivider(),
+                    _buildMenuItem(
+                      icon: Icons.sync_rounded,
+                      title: 'Sinkronisasi Data Profil',
+                      trailing: _isSyncing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            )
+                          : null,
+                      onTap: _isSyncing ? null : _handleSync,
+                    ),
+                    _buildMenuDivider(),
+                    _buildMenuItem(
+                      icon: Icons.info_outline_rounded,
+                      title: 'Tentang Aplikasi',
+                      subtitle: 'HYDRO-MON v1.0.0',
+                      onTap: _showAboutDialog,
+                    ),
+                    _buildMenuDivider(),
+                    _buildMenuItem(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Bantuan Operasional',
+                      onTap: _showHelpDialog,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // 3. Tombol Keluar (Logout)
+              InkWell(
+                onTap: _handleLogout,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Keluar',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
         ),
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        child: Column(
-          children: [
-            // 1. User Profile Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.neutral200),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x05000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: const Color(0xFF0284C7),
-                    child: const Icon(
-                      Icons.person,
-                      size: 32,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.neutral900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          userRole,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                        Text(
-                          'PLTMh Sampean Baru',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.neutral400,
-                    size: 24,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 2. Settings Menu List Card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.neutral200),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x05000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildMenuItem(
-                    icon: Icons.lock_outline_rounded,
-                    title: 'Ubah Password',
-                    onTap: _showChangePasswordDialog,
-                  ),
-                  _buildMenuDivider(),
-                  _buildMenuItem(
-                    icon: Icons.fingerprint_rounded,
-                    title: 'Login Biometrik / Sidik Jari',
-                    subtitle: authState.isBiometricEnabled ? 'Aktif (Sentuh untuk ubah)' : 'Nonaktif',
-                    trailing: Switch(
-                      value: authState.isBiometricEnabled,
-                      activeThumbColor: const Color(0xFF0284C7),
-                      onChanged: _handleBiometricToggle,
-                    ),
-                    onTap: () => _handleBiometricToggle(!authState.isBiometricEnabled),
-                  ),
-                  _buildMenuDivider(),
-                  _buildMenuItem(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Pengaturan Notifikasi',
-                    onTap: _showNotificationSettings,
-                  ),
-                  _buildMenuDivider(),
-                  _buildMenuItem(
-                    icon: Icons.sync_rounded,
-                    title: 'Sinkronisasi Data',
-                    trailing: _isSyncing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0284C7)),
-                          )
-                        : null,
-                    onTap: _isSyncing ? null : _handleSync,
-                  ),
-                  _buildMenuDivider(),
-                  _buildMenuItem(
-                    icon: Icons.info_outline_rounded,
-                    title: 'Tentang Aplikasi',
-                    subtitle: 'HYDRO-MON v1.0.0',
-                    onTap: _showAboutDialog,
-                  ),
-                  _buildMenuDivider(),
-                  _buildMenuItem(
-                    icon: Icons.help_outline_rounded,
-                    title: 'Bantuan',
-                    onTap: _showHelpDialog,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // 3. Tombol Keluar (Logout)
-            InkWell(
-              onTap: _handleLogout,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFECACA)),
-                ),
-                child: Center(
-                  child: Text(
-                    'Keluar',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFEF4444),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+        bottomNavigationBar: HomeBottomNav(
+          currentIndex: 2,
+          onTap: _onBottomNavTap,
         ),
       ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: 2, // Profil is active
-        onTap: _onBottomNavTap,
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildMenuItem({
     required IconData icon,
@@ -552,7 +515,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: AppColors.neutral700),
+            Icon(icon, size: 22, color: const Color(0xFF475569)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -562,7 +525,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.neutral900,
                     ),
                   ),
@@ -572,19 +535,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: AppColors.neutral500,
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            trailing ??
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: AppColors.neutral400,
-                ),
+            if (trailing != null)
+              trailing
+            else
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Color(0xFF94A3B8),
+              ),
           ],
         ),
       ),
@@ -592,9 +557,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildMenuDivider() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(height: 1, color: AppColors.neutral200),
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      indent: 52,
+      color: Color(0xFFF1F5F9),
     );
   }
 }

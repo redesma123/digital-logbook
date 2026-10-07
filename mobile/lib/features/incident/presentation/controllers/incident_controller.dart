@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/network/attachment_repository.dart';
 import '../../domain/incident_model.dart';
 import '../../data/incident_repository.dart';
 
@@ -34,15 +35,34 @@ final incidentControllerProvider = NotifierProvider<IncidentController, Incident
 
 class IncidentController extends Notifier<IncidentState> {
   late final IncidentRepository _repository;
+  late final AttachmentRepository _attachmentRepo;
 
   @override
   IncidentState build() {
     _repository = ref.watch(incidentRepositoryProvider);
-    // Initial synchronous mock data to avoid widget test pump delays
-    return IncidentState(
-      incidents: IncidentModel.mockIncidents,
+    _attachmentRepo = ref.watch(attachmentRepositoryProvider);
+    Future.microtask(() => loadIncidents());
+    return const IncidentState(
+      isLoading: true,
+      incidents: [],
       statusFilter: 'Semua Status',
     );
+  }
+
+  Future<void> loadIncidents() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final items = await _repository.getIncidents(statusFilter: state.statusFilter);
+      state = state.copyWith(
+        isLoading: false,
+        incidents: items,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal memuat data gangguan: $e',
+      );
+    }
   }
 
   Future<void> filterByStatus(String status) async {
@@ -56,18 +76,34 @@ class IncidentController extends Notifier<IncidentState> {
 
   Future<bool> createIncident(IncidentModel incident) async {
     state = state.copyWith(isLoading: true);
-    await _repository.createIncident(incident);
+    final createdId = await _repository.createIncident(incident);
+    if (createdId != null) {
+      if (incident.photos.isNotEmpty) {
+        await _attachmentRepo.uploadMultiple(
+          filePaths: incident.photos,
+          relatedTo: 'INCIDENT',
+          relatedId: createdId,
+        );
+      }
+      final items = await _repository.getIncidents(statusFilter: state.statusFilter);
+      state = state.copyWith(
+        isLoading: false,
+        incidents: items,
+      );
+      return true;
+    }
+    state = state.copyWith(isLoading: false);
+    return false;
+  }
+
+  Future<bool> updateIncidentStatus(int id, String newStatus, [String? notes]) async {
+    state = state.copyWith(isLoading: true);
+    final success = await _repository.updateStatus(id, newStatus, notes);
     final items = await _repository.getIncidents(statusFilter: state.statusFilter);
     state = state.copyWith(
       isLoading: false,
       incidents: items,
     );
-    return true;
-  }
-
-  Future<void> updateIncidentStatus(int id, String newStatus) async {
-    await _repository.updateStatus(id, newStatus);
-    final items = await _repository.getIncidents(statusFilter: state.statusFilter);
-    state = state.copyWith(incidents: items);
+    return success;
   }
 }

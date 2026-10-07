@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/api_client.dart';
@@ -40,6 +41,8 @@ class AuthRepository {
         refreshToken: refreshToken,
       );
 
+      await _storage.saveUserData(jsonEncode(user.toJson()));
+
       await _storage.saveRememberMe(
         rememberMe: rememberMe,
         username: rememberMe ? username : null,
@@ -49,11 +52,37 @@ class AuthRepository {
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] as String? ??
           e.response?.data?['error'] as String? ??
-          'Gagal melakukan login. Periksa username dan password.';
+          (e.response?.statusCode == 401
+              ? 'Username atau password salah'
+              : 'Gagal melakukan login. Periksa koneksi ke server.');
       throw Exception(msg);
     } catch (e) {
-      throw Exception('Terjadi kesalahan jaringan atau server');
+      if (e is Exception) rethrow;
+      throw Exception('Terjadi kesalahan pada sistem autentikasi');
     }
+  }
+
+  Future<UserModel?> getCurrentUser() async {
+    try {
+      final token = await _storage.getAccessToken();
+      if (token == null || token.isEmpty) return null;
+
+      final response = await _dio.get('/auth/me');
+      if (response.statusCode == 200 && response.data?['data'] != null) {
+        final user = UserModel.fromJson(response.data['data'] as Map<String, dynamic>);
+        await _storage.saveUserData(jsonEncode(user.toJson()));
+        return user;
+      }
+    } catch (_) {
+      // Fallback to locally saved user if offline
+      final savedJson = await _storage.getUserData();
+      if (savedJson != null && savedJson.isNotEmpty) {
+        try {
+          return UserModel.fromJson(jsonDecode(savedJson) as Map<String, dynamic>);
+        } catch (_) {}
+      }
+    }
+    return null;
   }
 
   Future<bool> hasValidToken() async {
@@ -74,6 +103,7 @@ class AuthRepository {
       // Ignore network errors on logout
     } finally {
       await _storage.clearTokens();
+      await _storage.clearUserData();
     }
   }
 }

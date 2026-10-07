@@ -10,8 +10,8 @@ class UnitStatusCard extends StatefulWidget {
   const UnitStatusCard({
     super.key,
     this.unitName = 'PLTMH Sampean Baru',
-    this.status = 'RUNNING',
-    this.runningSince = '12 Apr 2025 06:30',
+    this.status = 'STANDBY',
+    this.runningSince = '-',
   });
 
   @override

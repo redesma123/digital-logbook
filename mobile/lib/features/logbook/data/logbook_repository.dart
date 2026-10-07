@@ -11,229 +11,40 @@ final logbookRepositoryProvider = Provider<LogbookRepository>((ref) {
 class LogbookRepository {
   final Dio _dio;
 
-  // Initial mock history exactly matching Screen 6 in design image
-  final List<LogbookModel> _mockEntries = [
-    const LogbookModel(
-      id: 1,
-      date: '12 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 400,
-      current: 820,
-      frequency: 50.0,
-      activePower: 450,
-      powerFactor: 0.98,
-      flowRate: 2.50,
-      waterLevel: 1.80,
-      bearingTemp: 52,
-      hourMeterStart: 12442.0,
-      hourMeterEnd: 12450.0,
-      notes: 'Kondisi normal.',
-    ),
-    const LogbookModel(
-      id: 2,
-      date: '11 Apr 2025',
-      time: '16:00',
-      shift: 'Siang',
-      unitStatus: 'Running',
-      operatorName: 'Budi Santoso',
-      voltage: 400,
-      current: 810,
-      frequency: 50.0,
-      activePower: 445,
-      powerFactor: 0.98,
-      flowRate: 2.48,
-      waterLevel: 1.78,
-      bearingTemp: 53,
-      hourMeterStart: 12434.0,
-      hourMeterEnd: 12442.0,
-      notes: 'Operasi berjalan lancar.',
-    ),
-    const LogbookModel(
-      id: 3,
-      date: '11 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 398,
-      current: 805,
-      frequency: 49.9,
-      activePower: 438,
-      powerFactor: 0.97,
-      flowRate: 2.45,
-      waterLevel: 1.75,
-      bearingTemp: 51,
-      notes: 'Normal.',
-    ),
-    const LogbookModel(
-      id: 4,
-      date: '10 Apr 2025',
-      time: '16:00',
-      shift: 'Siang',
-      unitStatus: 'Running',
-      operatorName: 'Budi Santoso',
-      voltage: 400,
-      current: 808,
-      frequency: 50.0,
-      activePower: 440,
-      powerFactor: 0.98,
-      flowRate: 2.46,
-      waterLevel: 1.76,
-      bearingTemp: 52,
-      notes: 'Kondisi normal.',
-    ),
-    const LogbookModel(
-      id: 5,
-      date: '10 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 399,
-      current: 800,
-      frequency: 50.1,
-      activePower: 435,
-      powerFactor: 0.98,
-      flowRate: 2.40,
-      waterLevel: 1.72,
-      bearingTemp: 50,
-      notes: 'Normal.',
-    ),
-    const LogbookModel(
-      id: 6,
-      date: '09 Apr 2025',
-      time: '16:00',
-      shift: 'Siang',
-      unitStatus: 'Running',
-      operatorName: 'Budi Santoso',
-      voltage: 398,
-      current: 795,
-      frequency: 50.0,
-      activePower: 430,
-      powerFactor: 0.97,
-      flowRate: 2.38,
-      waterLevel: 1.70,
-      bearingTemp: 51,
-      notes: 'Debit sedikit menurun.',
-    ),
-    const LogbookModel(
-      id: 7,
-      date: '09 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 397,
-      current: 790,
-      frequency: 49.9,
-      activePower: 428,
-      powerFactor: 0.97,
-      flowRate: 2.36,
-      waterLevel: 1.68,
-      bearingTemp: 50,
-      notes: 'Normal.',
-    ),
-    const LogbookModel(
-      id: 8,
-      date: '08 Apr 2025',
-      time: '16:00',
-      shift: 'Siang',
-      unitStatus: 'Standby',
-      operatorName: 'Budi Santoso',
-      voltage: 399,
-      current: 798,
-      frequency: 50.0,
-      activePower: 432,
-      powerFactor: 0.97,
-      flowRate: 2.38,
-      waterLevel: 1.70,
-      bearingTemp: 48,
-      notes: 'Pembersihan trash rack.',
-    ),
-    const LogbookModel(
-      id: 9,
-      date: '08 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 396,
-      current: 780,
-      frequency: 49.8,
-      activePower: 420,
-      powerFactor: 0.96,
-      flowRate: 2.30,
-      waterLevel: 1.65,
-      bearingTemp: 49,
-      notes: 'Normal.',
-    ),
-    const LogbookModel(
-      id: 10,
-      date: '07 Apr 2025',
-      time: '16:00',
-      shift: 'Siang',
-      unitStatus: 'Shutdown',
-      operatorName: 'Budi Santoso',
-      voltage: 0,
-      current: 0,
-      frequency: 0,
-      activePower: 0,
-      powerFactor: 0,
-      flowRate: 0.5,
-      waterLevel: 1.50,
-      bearingTemp: 32,
-      notes: 'Shutdown untuk inspeksi rutin saluran.',
-    ),
-    const LogbookModel(
-      id: 11,
-      date: '07 Apr 2025',
-      time: '08:00',
-      shift: 'Pagi',
-      unitStatus: 'Running',
-      operatorName: 'Andi Pratama',
-      voltage: 395,
-      current: 770,
-      frequency: 49.9,
-      activePower: 415,
-      powerFactor: 0.96,
-      flowRate: 2.25,
-      waterLevel: 1.60,
-      bearingTemp: 48,
-      notes: 'Normal.',
-    ),
-  ];
-
   LogbookRepository(this._dio);
 
-  List<LogbookModel> get initialEntries => List.unmodifiable(_mockEntries);
-
-  /// Stand HM akhir shift terakhir → jadi HM awal shift berikutnya.
-  /// ponytail: lokal dulu; nanti ganti ke GET /logbook/latest-counter saat integrasi API.
-  double? get latestHourMeterEnd {
-    for (final e in _mockEntries) {
-      if (e.hourMeterEnd != null) return e.hourMeterEnd;
-    }
-    return null;
-  }
-
-  Future<List<LogbookModel>> getHistory() async {
+  /// Mengambil riwayat logbook dari database backend sesuai filter
+  Future<List<LogbookModel>> getHistory({
+    int? unitId,
+    String? from,
+    String? to,
+    String? shift,
+  }) async {
     try {
-      final response = await _dio.get('/logbook');
+      final queryParams = <String, dynamic>{
+        'limit': 50,
+      };
+      if (unitId != null) queryParams['unit_id'] = unitId;
+      if (from != null && from.isNotEmpty) queryParams['from'] = from;
+      if (to != null && to.isNotEmpty) queryParams['to'] = to;
+      if (shift != null && shift.isNotEmpty && shift != 'SEMUA') {
+        queryParams['shift'] = shift.toUpperCase();
+      }
+
+      final response = await _dio.get('/logbook', queryParameters: queryParams);
       if (response.statusCode == 200 && response.data?['data'] != null) {
-        final list = response.data['data']['entries'] as List<dynamic>?;
-        if (list != null && list.isNotEmpty) {
+        final list = (response.data['data']['items'] ?? response.data['data']['entries']) as List<dynamic>?;
+        if (list != null) {
           return list.map((e) => LogbookModel.fromJson(e as Map<String, dynamic>)).toList();
         }
       }
+      return const [];
     } catch (_) {
-      // Gracefully fall back to local mock entries
+      return const [];
     }
-    return List.unmodifiable(_mockEntries);
   }
 
+  /// Mengambil detail logbook berdasarkan ID dari database backend
   Future<LogbookModel?> getById(int id) async {
     try {
       final response = await _dio.get('/logbook/$id');
@@ -241,17 +52,34 @@ class LogbookRepository {
         return LogbookModel.fromJson(response.data['data'] as Map<String, dynamic>);
       }
     } catch (_) {}
-
-    return _mockEntries.firstWhere((e) => e.id == id, orElse: () => _mockEntries.first);
+    return null;
   }
 
-  Future<bool> createLogbook(LogbookModel entry) async {
+  /// Mengambil stand HM akhir shift terakhir untuk unit terkait dari endpoint riil
+  Future<double?> fetchLatestHourMeter(int unitId) async {
     try {
-      await _dio.post('/logbook', data: entry.toJson());
+      final res = await _dio.get(
+        '/logbook/latest-counter',
+        queryParameters: {'unit_id': unitId},
+      );
+      if (res.statusCode == 200 && res.data?['data'] != null) {
+        final val = res.data['data']['hour_meter_end'] as num?;
+        if (val != null) return val.toDouble();
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Mengirim entri logbook baru ke backend database dan mengembalikan ID entri yang dibuat
+  Future<int?> createLogbook(LogbookModel entry) async {
+    try {
+      final res = await _dio.post('/logbook', data: entry.toApiJson());
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return res.data?['data']?['id'] as int?;
+      }
+      return null;
     } catch (_) {
-      // Save to mock entries
+      return null;
     }
-    _mockEntries.insert(0, entry);
-    return true;
   }
 }

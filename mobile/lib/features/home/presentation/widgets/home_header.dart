@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/network/operational_notification_repository.dart';
 
-class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
+class HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationTap;
 
   const HomeHeader({super.key, this.onNotificationTap});
@@ -11,7 +13,8 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(64);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadNotificationCountProvider);
     return Container(
       color: const Color(0xFF0F265C), // Industrial Navy Blue
       child: SafeArea(
@@ -81,18 +84,19 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ),
                     ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEF4444), // Notification alert red
-                          shape: BoxShape.circle,
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444), // Notification alert red
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

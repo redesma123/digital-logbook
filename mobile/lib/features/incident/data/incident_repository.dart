@@ -1,47 +1,78 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/incident_model.dart';
 
 final incidentRepositoryProvider = Provider<IncidentRepository>((ref) {
-  return IncidentRepository();
+  final dio = ref.watch(apiClientProvider);
+  return IncidentRepository(dio);
 });
 
 class IncidentRepository {
-  final List<IncidentModel> _incidents = List.from(IncidentModel.mockIncidents);
+  final Dio _dio;
 
-  Future<List<IncidentModel>> getIncidents({String? statusFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (statusFilter == null || statusFilter.isEmpty || statusFilter == 'Semua Status' || statusFilter == 'SEMUA') {
-      return List.unmodifiable(_incidents);
+  IncidentRepository(this._dio);
+
+  Future<List<IncidentModel>> getIncidents({String? statusFilter, int? unitId}) async {
+    try {
+      final queryParams = <String, dynamic>{
+        'limit': 50,
+      };
+      if (unitId != null) queryParams['unit_id'] = unitId;
+      if (statusFilter != null &&
+          statusFilter.isNotEmpty &&
+          statusFilter != 'Semua Status' &&
+          statusFilter != 'SEMUA') {
+        queryParams['status'] = statusFilter.toUpperCase();
+      }
+
+      final response = await _dio.get('/incidents', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data?['data'] != null) {
+        final list = (response.data['data']['items'] ?? response.data['data']['incidents']) as List<dynamic>?;
+        if (list != null) {
+          return list.map((e) => IncidentModel.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      }
+      return const [];
+    } catch (_) {
+      return const [];
     }
-    final normalized = statusFilter.toUpperCase();
-    return _incidents.where((i) => i.status.toUpperCase() == normalized).toList();
   }
 
   Future<IncidentModel?> getIncidentById(int id) async {
-    await Future.delayed(const Duration(milliseconds: 100));
     try {
-      return _incidents.firstWhere((i) => i.id == id);
+      final response = await _dio.get('/incidents/$id');
+      if (response.statusCode == 200 && response.data?['data'] != null) {
+        return IncidentModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<int?> createIncident(IncidentModel incident) async {
+    try {
+      final response = await _dio.post('/incidents', data: incident.toApiJson());
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data?['data']?['id'] as int?;
+      }
+      return null;
     } catch (_) {
       return null;
     }
   }
 
-  Future<IncidentModel> createIncident(IncidentModel incident) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final newId = _incidents.isEmpty ? 1 : (_incidents.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
-    final created = incident.copyWith(id: newId);
-    _incidents.insert(0, created);
-    return created;
-  }
-
-  Future<IncidentModel> updateStatus(int id, String newStatus) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final index = _incidents.indexWhere((i) => i.id == id);
-    if (index != -1) {
-      final updated = _incidents[index].copyWith(status: newStatus);
-      _incidents[index] = updated;
-      return updated;
+  Future<bool> updateStatus(int id, String newStatus, [String? notes]) async {
+    try {
+      final response = await _dio.patch(
+        '/incidents/$id/status',
+        data: {
+          'status': newStatus.toUpperCase(),
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
-    throw Exception('Incident with id $id not found');
   }
 }
