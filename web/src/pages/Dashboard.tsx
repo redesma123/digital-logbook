@@ -264,7 +264,7 @@ const Dashboard = () => {
                                     ? 'text-amber-600'
                                     : 'text-emerald-600'
                                 }`}>
-                                  {inc.status === 'OPEN' ? 'Terbuka' : inc.status === 'PROCESS' ? 'Ditangani' : 'Selesai'}
+                                  {inc.status === 'OPEN' ? 'Baru (Open)' : inc.status === 'PROCESS' ? 'Dalam Proses' : 'Selesai (Closed)'}
                                 </span>
                               </td>
                             </tr>

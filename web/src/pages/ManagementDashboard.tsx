@@ -554,10 +554,18 @@ const ManagementDashboard = () => {
                             <div className="text-[13px] font-medium text-slate-900">{incident.equipment}</div>
                             <div className="text-xs text-slate-500">{incident.unit} &middot; {incident.code}</div>
                           </div>
-                          {incident.status === 'PROCESS' ? (
-                            <Badge>Dalam proses</Badge>
+                          {incident.status === 'OPEN' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200">
+                              Baru (Open)
+                            </span>
+                          ) : incident.status === 'PROCESS' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200">
+                              Dalam proses
+                            </span>
                           ) : (
-                            <Badge>Selesai</Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200">
+                              Selesai
+                            </span>
                           )}
                         </div>
                         <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">{incident.issue}</p>
