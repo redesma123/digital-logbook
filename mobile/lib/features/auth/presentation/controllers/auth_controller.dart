@@ -51,6 +51,9 @@ class AuthController extends Notifier<AuthState> {
   late final AuthRepository _repository;
   late final SecureStorageService _storage;
   late final BiometricService _biometricService;
+  String? _currentSessionPassword;
+
+  bool get hasSessionPassword => _currentSessionPassword != null && _currentSessionPassword!.isNotEmpty;
 
   @override
   AuthState build() {
@@ -91,6 +94,8 @@ class AuthController extends Notifier<AuthState> {
         password: password,
         rememberMe: state.rememberMe,
       );
+
+      _currentSessionPassword = password;
 
       if (state.isBiometricEnabled) {
         await _storage.saveBiometricCredentials(
@@ -154,7 +159,8 @@ class AuthController extends Notifier<AuthState> {
         password: savedCreds['password']!,
         rememberMe: true,
       );
-      state = state.copyWith(isLoading: false, user: user);
+      _currentSessionPassword = savedCreds['password']!;
+      state = state.copyWith(isLoading: false, user: user, isBiometricEnabled: true);
       return true;
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -185,6 +191,7 @@ class AuthController extends Notifier<AuthState> {
         username: username.trim(),
         password: password,
       );
+      _currentSessionPassword = password;
       state = state.copyWith(isBiometricEnabled: true);
       return true;
     } catch (_) {
@@ -201,12 +208,20 @@ class AuthController extends Notifier<AuthState> {
     } catch (_) {}
   }
 
-  Future<bool> toggleBiometric(bool enabled) async {
+  Future<bool> toggleBiometric(bool enabled, {String? password}) async {
     if (enabled) {
       final isAvail = await _biometricService.isBiometricAvailable();
       if (!isAvail) {
         state = state.copyWith(
           errorMessage: 'Sensor sidik jari / biometrik tidak tersedia pada perangkat ini.',
+        );
+        return false;
+      }
+
+      final effectivePassword = password ?? _currentSessionPassword;
+      if (effectivePassword == null || effectivePassword.isEmpty) {
+        state = state.copyWith(
+          errorMessage: 'Password akun diperlukan untuk mengaktifkan login biometrik.',
         );
         return false;
       }
@@ -217,6 +232,14 @@ class AuthController extends Notifier<AuthState> {
 
       if (!authenticated) {
         return false;
+      }
+
+      final username = state.user?.username ?? await _storage.getSavedUsername();
+      if (username != null && username.isNotEmpty) {
+        await _storage.saveBiometricCredentials(
+          username: username,
+          password: effectivePassword,
+        );
       }
 
       await _storage.setBiometricEnabled(true);
@@ -232,6 +255,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
+    _currentSessionPassword = null;
     await _repository.logout();
     state = const AuthState();
     _loadInitialSession();

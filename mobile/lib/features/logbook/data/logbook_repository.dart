@@ -78,8 +78,16 @@ class LogbookRepository {
         return res.data?['data']?['id'] as int?;
       }
       return null;
-    } catch (_) {
-      return null;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] as String? ??
+          e.response?.data?['error'] as String? ??
+          (e.response?.statusCode == 409
+              ? 'Entri logbook untuk unit, tanggal, dan shift ini sudah ada.'
+              : 'Gagal menyimpan logbook. Periksa data input.');
+      throw Exception(msg);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Gagal menyimpan entri logbook: $e');
     }
   }
 }

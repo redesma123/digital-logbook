@@ -191,18 +191,92 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Future<String?> _promptPasswordForBiometric() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        bool obscure = true;
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: const [
+                Icon(Icons.lock_outline_rounded, color: AppColors.primary, size: 22),
+                SizedBox(width: 8),
+                Text('Konfirmasi Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Masukkan password akun Anda untuk mengamankan dan mengaktifkan login biometrik:',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  obscureText: obscure,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: IconButton(
+                      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => obscure = !obscure),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: () => Navigator.pop(ctx, controller.text),
+                child: const Text('Konfirmasi', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleBiometricToggle(bool enable) async {
-    final success = await ref.read(authControllerProvider.notifier).toggleBiometric(enable);
-    if (!success && mounted) {
-      final err = ref.read(authControllerProvider).errorMessage;
-      if (err != null) {
+    final authController = ref.read(authControllerProvider.notifier);
+    String? password;
+    if (enable && !authController.hasSessionPassword) {
+      password = await _promptPasswordForBiometric();
+      if (password == null || password.isEmpty) return;
+    }
+
+    final success = await authController.toggleBiometric(enable, password: password);
+    if (mounted) {
+      if (success && enable) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(err),
-            backgroundColor: AppColors.statusTrip,
+          const SnackBar(
+            content: Text('Login biometrik berhasil diaktifkan!'),
+            backgroundColor: AppColors.statusRunning,
             behavior: SnackBarBehavior.floating,
           ),
         );
+      } else if (!success) {
+        final err = ref.read(authControllerProvider).errorMessage;
+        if (err != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(err),
+              backgroundColor: AppColors.statusTrip,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }

@@ -166,20 +166,26 @@ class LogbookController extends Notifier<LogbookState> {
   }
 
   Future<bool> saveLogbook(LogbookModel entry) async {
-    state = state.copyWith(isLoading: true);
-    final createdId = await _repository.createLogbook(entry);
-    if (createdId != null) {
-      if (entry.photos.isNotEmpty) {
-        await _attachmentRepo.uploadMultiple(
-          filePaths: entry.photos,
-          relatedTo: 'LOGBOOK',
-          relatedId: createdId,
-        );
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final createdId = await _repository.createLogbook(entry);
+      if (createdId != null) {
+        if (entry.photos.isNotEmpty) {
+          await _attachmentRepo.uploadMultiple(
+            filePaths: entry.photos,
+            relatedTo: 'LOGBOOK',
+            relatedId: createdId,
+          );
+        }
+        await loadHistory();
+        return true;
       }
-      await loadHistory();
-      return true;
+      state = state.copyWith(isLoading: false, errorMessage: 'Gagal menyimpan logbook');
+      return false;
+    } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      state = state.copyWith(isLoading: false, errorMessage: msg);
+      return false;
     }
-    state = state.copyWith(isLoading: false);
-    return false;
   }
 }

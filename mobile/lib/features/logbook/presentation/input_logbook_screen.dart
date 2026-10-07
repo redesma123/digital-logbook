@@ -195,6 +195,15 @@ class _InputLogbookScreenState extends ConsumerState<InputLogbookScreen> {
           ),
         );
         context.go('/history-logbook');
+      } else {
+        final err = ref.read(logbookControllerProvider).errorMessage ?? 'Gagal menyimpan logbook. Pastikan data valid.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err),
+            backgroundColor: AppColors.statusTrip,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
