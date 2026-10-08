@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 class ApiUrlHelper {
-  /// Base URL resmi Production (Domain HTTPS publik saat aplikasi dirilis ke publik)
-  static const String _productionBaseUrl = 'https://api.hydromon.com/api/v1';
+  /// Base URL resmi Production (Domain HTTPS publik Render.com)
+  static const String _productionBaseUrl = 'https://digital-logbook-i836.onrender.com/api/v1';
 
   /// Base URL yang disuntikkan via build argument: --dart-define=API_BASE_URL=...
   static const String _buildEnvUrl = String.fromEnvironment('API_BASE_URL');
 
-  /// Fallback untuk development lokal
-  static const String _devWebUrl = 'http://localhost:3000/api/v1';
-  static const String _devLanUrl = 'http://192.168.1.24:3000/api/v1';
+  /// Fallback untuk development lokal / default
+  static const String _devWebUrl = 'https://digital-logbook-i836.onrender.com/api/v1';
+  static const String _devLanUrl = 'https://digital-logbook-i836.onrender.com/api/v1';
 
   /// URL dinamis yang bisa diubah saat runtime di mode Debug/Testing
   static String? _dynamicOverrideUrl;
