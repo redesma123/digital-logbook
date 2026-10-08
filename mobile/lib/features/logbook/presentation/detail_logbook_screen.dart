@@ -7,8 +7,81 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_url_helper.dart';
 import 'controllers/logbook_controller.dart';
 
-class DetailLogbookScreen extends ConsumerWidget {
+class DetailLogbookScreen extends ConsumerStatefulWidget {
   const DetailLogbookScreen({super.key});
+
+  @override
+  ConsumerState<DetailLogbookScreen> createState() => _DetailLogbookScreenState();
+}
+
+class _DetailLogbookScreenState extends ConsumerState<DetailLogbookScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      final entry = ref.read(logbookControllerProvider).selectedEntry;
+      if (entry != null) {
+        ref.read(logbookControllerProvider.notifier).refreshDetail(entry.id);
+      }
+    });
+  }
+
+  void _showFullImage(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) {
+        final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoUrl);
+        final bool isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: InteractiveViewer(
+                  maxScale: 4.0,
+                  child: isNetwork
+                      ? Image.network(
+                          resolvedUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: const Color(0xFF1E293B),
+                            padding: const EdgeInsets.all(40),
+                            child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                          ),
+                        )
+                      : Container(
+                          color: const Color(0xFF1E293B),
+                          padding: const EdgeInsets.all(40),
+                          child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 48),
+                        ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   String _formatDisplayDate(String isoDate) {
     try {
@@ -20,7 +93,7 @@ class DetailLogbookScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(logbookControllerProvider);
     final entry = state.selectedEntry;
 
@@ -513,50 +586,53 @@ class DetailLogbookScreen extends ConsumerWidget {
     final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoUrl);
     final bool isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
 
-    return Container(
-      width: 110,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (isNetwork)
-            Image.network(
-              resolvedUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image, color: Color(0xFF94A3B8), size: 28),
+    return GestureDetector(
+      onTap: () => _showFullImage(context, photoUrl),
+      child: Container(
+        width: 110,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (isNetwork)
+              Image.network(
+                resolvedUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(Icons.broken_image, color: Color(0xFF94A3B8), size: 28),
+                ),
+              )
+            else
+              const Center(
+                child: Icon(Icons.image_outlined, color: Color(0xFF38BDF8), size: 32),
               ),
-            )
-          else
-            const Center(
-              child: Icon(Icons.image_outlined, color: Color(0xFF38BDF8), size: 32),
-            ),
-          Positioned(
-            left: 4,
-            right: 4,
-            bottom: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'Foto #$index',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
+            Positioned(
+              left: 4,
+              right: 4,
+              bottom: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Foto #$index',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
