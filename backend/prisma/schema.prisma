@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id                           Int                            @id @default(autoincrement())
+  username                     String                         @unique
+  password_hash                String
+  full_name                    String
+  role                         Role
+  is_active                    Boolean                        @default(true)
+  created_at                   DateTime                       @default(now())
+  updated_at                   DateTime                       @updatedAt
+  attachments                  attachments[]
+  incident_status_histories    incident_status_histories[]    @relation("IncidentStatusChanger")
+  reported_incidents           incidents[]                    @relation("IncidentReporter")
+  logbook_entries              logbook_entries[]
+  created_maintenance_records  maintenance_records[]          @relation("MaintenanceCreator")
+  maintenance_status_histories maintenance_status_histories[] @relation("MaintenanceStatusChanger")
+  refresh_tokens               refresh_tokens[]
+}
+
+model refresh_tokens {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  user_id    Int
+  expires_at DateTime
+  created_at DateTime @default(now())
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model plants {
+  id              Int      @id @default(autoincrement())
+  name            String
+  location        String
+  capacity_kw     Float?
+  design_flow_m3s Float?
+  design_head_m   Float?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  units           units[]
+}
+
+model units {
+  id                  Int                   @id @default(autoincrement())
+  plant_id            Int
+  unit_code           String
+  name                String
+  current_status      UnitStatus            @default(STANDBY)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  incidents           incidents[]
+  logbook_entries     logbook_entries[]
+  maintenance_records maintenance_records[]
+  plant               plants                @relation(fields: [plant_id], references: [id])
+}
+
+model logbook_entries {
+  id                Int                @id @default(autoincrement())
+  unit_id           Int
+  operator_id       Int
+  date              DateTime           @db.Date
+  shift             Shift
+  unit_status       UnitStatus
+  hour_meter_start  Float?
+  hour_meter_end    Float?
+  running_hours     Float?
+  notes             String?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+  deleted_at        DateTime?
+  attachments       attachments[]
+  operator          users              @relation(fields: [operator_id], references: [id])
+  unit              units              @relation(fields: [unit_id], references: [id])
+  params_electrical params_electrical?
+  params_hydraulic  params_hydraulic?
+  params_mechanical params_mechanical?
+
+  @@unique([unit_id, date, shift])
+  @@index([operator_id], map: "idx_logbook_operator")
+}
+
+model params_electrical {
+  id                    Int             @id @default(autoincrement())
+  logbook_id            Int             @unique
+  voltage_v             Float?
+  current_a             Float?
+  frequency_hz          Float?
+  active_power_kw       Float?
+  reactive_power_kvar   Float?
+  power_factor          Float?
+  energy_production_kwh Float?
+  generator_status      String?
+  logbook               logbook_entries @relation(fields: [logbook_id], references: [id])
+}
+
+model params_mechanical {
+  id               Int             @id @default(autoincrement())
+  logbook_id       Int             @unique
+  rpm              Float?
+  bearing_temp_c   Float?
+  generator_temp_c Float?
+  turbine_temp_c   Float?
+  vibration_mms    Float?
+  logbook          logbook_entries @relation(fields: [logbook_id], references: [id])
+}
+
+model params_hydraulic {
+  id               Int             @id @default(autoincrement())
+  logbook_id       Int             @unique
+  flow_rate_m3s    Float?
+  water_level_m    Float?
+  head_m           Float?
+  pressure_bar     Float?
+  intake_condition String?
+  logbook          logbook_entries @relation(fields: [logbook_id], references: [id])
+}
+
+model incidents {
+  id               Int                         @id @default(autoincrement())
+  unit_id          Int
+  reported_by_id   Int
+  occurred_at      DateTime
+  equipment        String
+  incident_type    String
+  description      String
+  operator_action  String?
+  status           IncidentStatus              @default(OPEN)
+  resolved_at      DateTime?
+  created_at       DateTime                    @default(now())
+  updated_at       DateTime                    @updatedAt
+  deleted_at       DateTime?
+  attachments      attachments[]
+  status_histories incident_status_histories[]
+  reporter         users                       @relation("IncidentReporter", fields: [reported_by_id], references: [id])
+  unit             units                       @relation(fields: [unit_id], references: [id])
+
+  @@index([unit_id], map: "idx_incidents_unit")
+  @@index([status], map: "idx_incidents_status")
+}
+
+model incident_status_histories {
+  id            Int             @id @default(autoincrement())
+  incident_id   Int
+  changed_by_id Int
+  from_status   IncidentStatus?
+  to_status     IncidentStatus
+  changed_at    DateTime        @default(now())
+  notes         String?
+  changer       users           @relation("IncidentStatusChanger", fields: [changed_by_id], references: [id])
+  incident      incidents       @relation(fields: [incident_id], references: [id])
+}
+
+model maintenance_records {
+  id               Int                            @id @default(autoincrement())
+  unit_id          Int
+  created_by_id    Int
+  equipment        String
+  work_type        String
+  description      String
+  technician       String?
+  planned_date     DateTime?
+  status           MaintenanceStatus              @default(PLAN)
+  created_at       DateTime                       @default(now())
+  updated_at       DateTime                       @updatedAt
+  deleted_at       DateTime?
+  attachments      attachments[]
+  creator          users                          @relation("MaintenanceCreator", fields: [created_by_id], references: [id])
+  unit             units                          @relation(fields: [unit_id], references: [id])
+  status_histories maintenance_status_histories[]
+
+  @@index([unit_id], map: "idx_maintenance_unit")
+  @@index([status], map: "idx_maintenance_status")
+}
+
+model maintenance_status_histories {
+  id             Int                 @id @default(autoincrement())
+  maintenance_id Int
+  changed_by_id  Int
+  from_status    MaintenanceStatus?
+  to_status      MaintenanceStatus
+  changed_at     DateTime            @default(now())
+  notes          String?
+  changer        users               @relation("MaintenanceStatusChanger", fields: [changed_by_id], references: [id])
+  maintenance    maintenance_records @relation(fields: [maintenance_id], references: [id])
+}
+
+model attachments {
+  id                Int                  @id @default(autoincrement())
+  related_to        AttachmentRelatedTo
+  logbook_id        Int?
+  incident_id       Int?
+  maintenance_id    Int?
+  filename_stored   String
+  original_filename String
+  file_path         String
+  mime_type         String
+  file_size_bytes   Int
+  uploaded_by_id    Int
+  uploaded_at       DateTime             @default(now())
+  status            AttachmentStatus     @default(ACTIVE)
+  deleted_at        DateTime?
+  incident          incidents?           @relation(fields: [incident_id], references: [id])
+  logbook           logbook_entries?     @relation(fields: [logbook_id], references: [id])
+  maintenance       maintenance_records? @relation(fields: [maintenance_id], references: [id])
+  uploader          users                @relation(fields: [uploaded_by_id], references: [id])
+
+  @@index([related_to, logbook_id, incident_id, maintenance_id], map: "idx_attachments_related")
+}
+
+enum Role {
+  OPERATOR
+  SUPERVISOR
+  MANAGEMENT
+  ADMIN
+}
+
+enum UnitStatus {
+  RUNNING
+  STANDBY
+  TRIP
+  OFFLINE
+}
+
+enum Shift {
+  PAGI
+  SIANG
+  MALAM
+}
+
+enum IncidentStatus {
+  OPEN
+  PROCESS
+  CLOSED
+}
+
+enum MaintenanceStatus {
+  PLAN
+  PROCESS
+  COMPLETE
+}
+
+enum AttachmentStatus {
+  ACTIVE
+  DELETED_BY_RETENTION
+}
+
+enum AttachmentRelatedTo {
+  LOGBOOK
+  INCIDENT
+  MAINTENANCE
+}
