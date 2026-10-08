@@ -32,6 +32,7 @@ const maintenanceInclude = {
       role: true,
     },
   },
+  attachments: true,
 };
 
 const maintenanceDetailInclude = {

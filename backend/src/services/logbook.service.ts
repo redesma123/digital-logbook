@@ -34,6 +34,7 @@ const logbookInclude = {
   params_electrical: true,
   params_mechanical: true,
   params_hydraulic: true,
+  attachments: true,
 };
 
 export class LogbookService {
