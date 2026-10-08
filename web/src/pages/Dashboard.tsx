@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
@@ -16,6 +16,7 @@ import {
 } from '@/api';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [performance, setPerformance] = useState<PerformanceAnalytics | null>(null);
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
@@ -25,6 +26,12 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const userRole = localStorage.getItem('user_role');
+    if (userRole === 'OPERATOR') {
+      navigate('/history-operasi', { replace: true });
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const now = new Date();

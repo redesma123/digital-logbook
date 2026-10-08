@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { Button } from '../components/ui/button';
@@ -44,8 +45,8 @@ export interface ProductionRecord {
 }
 
 
-
 const ProduksiEnergi = () => {
+  const navigate = useNavigate();
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<string>('ALL');
   const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'year'>('7d');
@@ -55,6 +56,14 @@ const ProduksiEnergi = () => {
   const [selectedRecordDetail, setSelectedRecordDetail] = useState<ProductionRecord | null>(null);
   const [analyticsData, setAnalyticsData] = useState<PerformanceAnalytics | null>(null);
   const [tableRecords, setTableRecords] = useState<ProductionRecord[]>([]);
+
+  useEffect(() => {
+    const userRole = localStorage.getItem('user_role');
+    if (userRole === 'OPERATOR') {
+      navigate('/history-operasi', { replace: true });
+      return;
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchUnits = async () => {

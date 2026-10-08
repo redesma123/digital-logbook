@@ -14,7 +14,7 @@ export const dashboardRouter = Router();
 dashboardRouter.get(
   '/summary',
   authenticate,
-  authorize('OPERATOR', 'SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
+  authorize('SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
   validate(dashboardSummarySchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -30,7 +30,7 @@ dashboardRouter.get(
 dashboardRouter.get(
   '/chart',
   authenticate,
-  authorize('OPERATOR', 'SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
+  authorize('SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
   validate(dashboardChartSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

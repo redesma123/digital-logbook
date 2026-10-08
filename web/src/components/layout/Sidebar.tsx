@@ -4,6 +4,8 @@ import { LogOut } from 'lucide-react';
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const userRole = localStorage.getItem('user_role');
+  const isOperator = userRole === 'OPERATOR';
 
   const handleLogout = () => {
     localStorage.removeItem('user_role');
@@ -25,16 +27,18 @@ const Sidebar = () => {
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-3">
-          <li>
-            <NavLink 
-              to="/dashboard" 
-              className={({ isActive }) => 
-                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-[#1E293B] text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
-              }
-            >
-              Dashboard
-            </NavLink>
-          </li>
+          {!isOperator && (
+            <li>
+              <NavLink 
+                to="/dashboard" 
+                className={({ isActive }) => 
+                  `flex items-center px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-[#1E293B] text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
+                }
+              >
+                Dashboard
+              </NavLink>
+            </li>
+          )}
           <li>
             <NavLink 
               to="/kondisi-unit" 
@@ -85,16 +89,18 @@ const Sidebar = () => {
               Maintenance
             </NavLink>
           </li>
-          <li>
-            <NavLink 
-              to="/produksi-energi" 
-              className={({ isActive }) => 
-                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-[#1E293B] text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
-              }
-            >
-              Produksi Energi
-            </NavLink>
-          </li>
+          {!isOperator && (
+            <li>
+              <NavLink 
+                to="/produksi-energi" 
+                className={({ isActive }) => 
+                  `flex items-center px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'bg-[#1E293B] text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
+                }
+              >
+                Produksi Energi
+              </NavLink>
+            </li>
+          )}
         </ul>
       </nav>
       <div className="p-3 border-t border-slate-200 bg-slate-50">
