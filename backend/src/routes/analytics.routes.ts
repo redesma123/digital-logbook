@@ -11,7 +11,7 @@ export const analyticsRouter = Router();
 analyticsRouter.get(
   '/performance',
   authenticate,
-  authorize('SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
+  authorize('OPERATOR', 'SUPERVISOR', 'MANAGEMENT', 'ADMIN'),
   validate(analyticsPerformanceSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
