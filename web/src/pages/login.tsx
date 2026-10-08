@@ -49,6 +49,8 @@ export default function LoginPage() {
 
       if (result.user.role === 'MANAGEMENT') {
         navigate('/manajemen/dashboard');
+      } else if (result.user.role === 'OPERATOR') {
+        navigate('/history-operasi');
       } else {
         navigate('/dashboard');
       }
