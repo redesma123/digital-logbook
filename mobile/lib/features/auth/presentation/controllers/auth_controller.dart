@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/api_url_helper.dart';
 import 'package:mobile/core/services/biometric_service.dart';
 import 'package:mobile/core/storage/secure_storage_service.dart';
 import '../../domain/user_model.dart';
@@ -70,6 +71,10 @@ class AuthController extends Notifier<AuthState> {
       final savedUsername = await _storage.getSavedUsername();
       final isBioEnabled = await _storage.getBiometricEnabled();
       final isBioAvail = await _biometricService.isBiometricAvailable();
+      final token = await _storage.getAccessToken();
+      if (token != null && token.isNotEmpty) {
+        ApiUrlHelper.setActiveAuthToken(token);
+      }
       final currentUser = await _repository.getCurrentUser();
 
       state = state.copyWith(
@@ -94,6 +99,11 @@ class AuthController extends Notifier<AuthState> {
         password: password,
         rememberMe: state.rememberMe,
       );
+
+      final token = await _storage.getAccessToken();
+      if (token != null && token.isNotEmpty) {
+        ApiUrlHelper.setActiveAuthToken(token);
+      }
 
       _currentSessionPassword = password;
 

@@ -403,12 +403,28 @@ class HistoryLogbookScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${item.time} | ${item.unitName}',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: const Color(0xFF64748B),
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        '${item.time} | ${item.unitName}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      if (item.photos.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.photo_camera_back_outlined, size: 12, color: Color(0xFF0284C7)),
+                        Text(
+                          ' ${item.photos.length}',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF0284C7),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

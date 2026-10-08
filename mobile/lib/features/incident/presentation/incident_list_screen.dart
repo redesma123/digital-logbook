@@ -363,6 +363,23 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
+                      if (item.photos.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.photo_camera_back_outlined, size: 13, color: Color(0xFF0284C7)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.photos.length} Foto Lampiran',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0284C7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -554,16 +571,19 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
                           itemBuilder: (context, idx) {
                             final rawUrl = item.photos[idx];
                             final pUrl = ApiUrlHelper.resolvePhotoUrl(rawUrl);
-                            return Container(
-                              width: 90,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E293B),
-                                borderRadius: BorderRadius.circular(8),
+                            return GestureDetector(
+                              onTap: () => _showFullImage(context, rawUrl),
+                              child: Container(
+                                width: 90,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: pUrl.startsWith('http')
+                                    ? Image.network(pUrl, fit: BoxFit.cover)
+                                    : const Center(child: Icon(Icons.image, color: Colors.white54)),
                               ),
-                              clipBehavior: Clip.antiAlias,
-                              child: pUrl.startsWith('http')
-                                  ? Image.network(pUrl, fit: BoxFit.cover)
-                                  : const Center(child: Icon(Icons.image, color: Colors.white54)),
                             );
                           },
                         ),
@@ -647,6 +667,63 @@ class _IncidentListScreenState extends ConsumerState<IncidentListScreen> {
           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neutral900),
         ),
       ],
+    );
+  }
+
+  void _showFullImage(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) {
+        final resolvedUrl = ApiUrlHelper.resolvePhotoUrl(photoUrl);
+        final bool isNetwork = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: InteractiveViewer(
+                  maxScale: 4.0,
+                  child: isNetwork
+                      ? Image.network(
+                          resolvedUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: const Color(0xFF1E293B),
+                            padding: const EdgeInsets.all(40),
+                            child: const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                          ),
+                        )
+                      : Container(
+                          color: const Color(0xFF1E293B),
+                          padding: const EdgeInsets.all(40),
+                          child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 48),
+                        ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
