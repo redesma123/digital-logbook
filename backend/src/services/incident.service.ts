@@ -32,6 +32,7 @@ const incidentInclude = {
       role: true,
     },
   },
+  attachments: true,
 };
 
 const incidentDetailInclude = {
